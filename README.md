@@ -35,13 +35,14 @@ fi
 yarpserver
 ```
 
--- Open another window, go to gazebo/worlds folder, and run:
+-- Open another window, navigate to gazebo/worlds folder, and run:
 
 ```bash
 gazebo -s libgazebo_yarp_clock.so simple.world
 ```
 
--- Open another window, go to dependencies/collision/to_install folder, unzip each package, navigate to the corresponding folder and:
+
+-- Install controller dependencies. Open another window, go to dependencies/collision/to_install folder, unzip each package, navigate to each corresponding folder and:
 
 ```bash
 mkdir build
@@ -65,7 +66,7 @@ make -j
 ./main --robot icubSim
 ```
 
--- Play with keyboard keys to move the hands (see main.cpp)
+-- Play with keyboard to move the hands (see main.cpp) or walk. The robot tracks the object whenever it is reachable.
 
 -- If you have two robots, open another window and run:
 
