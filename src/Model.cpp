@@ -25,7 +25,7 @@ void Model::init()
 
 void Model::set_state(VectorXd in_state, VectorXd in_stated)
 {
-	icub_air_state( 0, &in_state[0], &in_stated[0] );
+	icub_air_state( 0.0, &in_state[0], &in_stated[0] );
 }
 
 VectorXd Model::get_equivht()
@@ -182,6 +182,7 @@ MatrixXd Model::get_jacob(int body, Vector3d pt, constraint_type type)
 void Model::set_acc(VectorXd acc)
 {
 	icub_air_setudot(&acc[0]);
+	double oqdot[AIR_N_U+1];
 }
 
 void  Model::get_mom(Vector3d &LM, Vector3d &AM, double * KE)

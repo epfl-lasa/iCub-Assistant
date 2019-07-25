@@ -12,6 +12,7 @@ Manipulation::Manipulation()
 	force_rh = VectorXd::Zero(6);
 	reading_lh = VectorXd::Zero(6);
 	reading_rh = VectorXd::Zero(6);
+	grav_compns = VectorXd::Zero(AIR_N_U);
 	
 	#ifdef HARDWARE
 		// pure bias values read from the hardware when stretching the arms and subtracting lower arm weights
@@ -65,10 +66,10 @@ void Manipulation::set_ideal_point(VectorXd pos)
 
 void Manipulation::read_forces(Contact_Manager &points)
 {
-	// arm force estimation, this compensates lower-arm weights
 	MatrixXd Forces(AIR_N_BODY,3);
 	MatrixXd Torques(AIR_N_BODY,3);
 	points.model.get_reac(Forces, Torques);
+	grav_compns = points.model.get_frcmat() * (-1);
 
 	MatrixXd RR = points.model.get_orient(26);
 	reading_lh = 	vectorbig(	RR*(-points[CN_LH].T.F_sens-bias_lh.segment(0,3)) + RR*Forces.block(26,0,1,3).transpose(), 
@@ -93,20 +94,34 @@ void Manipulation::secondary_filtering(Contact_Manager &points, double dt)
 	read_forces(points);
 	
 	// online differences
-	force_lh += (reading_lh - avg_lh - force_lh) * 5.0 * dt;
-	force_rh += (reading_rh - avg_rh - force_rh) * 5.0 * dt;
+	force_lh += (reading_lh - avg_lh - force_lh) * 1.0 * dt;
+	force_rh += (reading_rh - avg_rh - force_rh) * 1.0 * dt;
 }
 
-void Manipulation::compliance_control(Contact_Manager &points, double force_amp)
+void Manipulation::compliance_control(Contact_Manager &points)
 {
 	// calculate force directions
-	Vector3d mid = points[CN_RH].ref_p.pos*0.5 + points[CN_LH].ref_p.pos*0.5;
-	Vector3d hold_force_l = (mid - points[CN_LH].ref_p.pos).normalized() * force_amp;
-	Vector3d hold_force_r = (mid - points[CN_RH].ref_p.pos).normalized() * force_amp;
+	Vector3d mid = points[CN_RH].ref_p.pos.segment(0,3)*0.5 + points[CN_LH].ref_p.pos.segment(0,3)*0.5;
+	Vector3d hold_force_l = (mid - points[CN_LH].ref_p.pos.segment(0,3)).normalized() * force_amp;
+	Vector3d hold_force_r = (mid - points[CN_RH].ref_p.pos.segment(0,3)).normalized() * force_amp;
 
 	// This function should be called once and only after inverse kinematics	
-	points[CN_LH].ref_p.pos += truncate_command(((force_lh).segment(0,3)+hold_force_l) * 0.1/30.0, 0.2, -0.2);
-	points[CN_RH].ref_p.pos += truncate_command(((force_rh).segment(0,3)+hold_force_r) * 0.1/30.0, 0.2, -0.2);
+	points[CN_LH].ref_p.pos.segment(0,3) += truncate_command(((force_lh).segment(0,3)+hold_force_l) * 0.1/30.0, 0.2, -0.2);
+	points[CN_RH].ref_p.pos.segment(0,3) += truncate_command(((force_rh).segment(0,3)+hold_force_r) * 0.1/30.0, 0.2, -0.2);
+}
+
+void Manipulation::jacobian_transpose(Contact_Manager &points, Joints &joints)
+{
+	points[CN_LH].T.K = -Vector3d(30, 1, 1);
+	points[CN_LH].R.K = -Vector3d(10, 0.3, 1);
+	points[CN_RH].T.K = -Vector3d(30, 1, 1);
+	points[CN_RH].R.K = -Vector3d(10, 0.3, 1);
+	points.control(CN_LH, points[CN_LH].ref_p);
+	points.control(CN_RH, points[CN_RH].ref_p);
+	points[CN_LH].T.F_ref += - (points[CN_RH].p.pos - points[CN_LH].p.pos).segment(0,3).normalized() * force_amp;
+	points[CN_RH].T.F_ref += - (points[CN_LH].p.pos - points[CN_RH].p.pos).segment(0,3).normalized() * force_amp;
+	VectorXd h = grav_compns - points.get_virtual_mult();
+	joints.ref_tau.segment(24,14) = h.segment(24,14);
 }
 
 void Manipulation::update(bool reachable, double dt, Object &object, bool grasp)
@@ -140,7 +155,7 @@ void Manipulation::update(bool reachable, double dt, Object &object, bool grasp)
 
 	// grasping behavior
 	obj_width_dyn += ((grasp ? 0 : 1) - obj_width_dyn) * 1 * dt;
-	force_amp = obj_width_dyn * 20;
+	force_amp = (1.0 - obj_width_dyn) * 20;
 	force_amp *= grasp? 1 : 0;
 }
 

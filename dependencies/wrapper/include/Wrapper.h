@@ -90,7 +90,7 @@ public:
 
 	// online functions
 	void initializeJoint(VectorXd mode, VectorXd freeze);
-	void controlJoint(VectorXd mode, VectorXd freeze, VectorXd ref_pos);
+	void controlJoint(VectorXd mode, VectorXd freeze, VectorXd ref_pos, VectorXd ref_tau);
 	void setPidJoint(int k, double kp, double kd, double ki);
 	void getPidJoint(int k, double& kp, double& kd, double& ki);
 	void getJointLimits(double * minPosition, double * maxPosition);

@@ -1,22 +1,13 @@
 #include "Walking.h"
 
-void median_filter::init(int N)
+void median_filter::init(int N, int win)
 {
-    index = FILT_WIN-1;
+    window = win;
+	index = window-1;
     first_input = true;
     n = N;
-    for(int i=0;i<FILT_WIN;i++)
-        x[i] = VectorXd::Zero(n);
-}
-
-median_filter::median_filter()
-{
-    init(0);
-}
-
-median_filter::median_filter(int N)
-{
-    init(N);
+    for(int i=0;i<window;i++)
+        x.push_back(VectorXd::Zero(n));
 }
 
 VectorXd median_filter::update(VectorXd X)
@@ -24,23 +15,23 @@ VectorXd median_filter::update(VectorXd X)
     assert(X.size()==n);
     if(first_input)
     {
-        for(int i=0;i<FILT_WIN;i++)
+        for(int i=0;i<window;i++)
             x[i] = X;
         first_input = false;
     }
     else
     {
-        index = (index+1)%FILT_WIN;
+        index = (index+1)%window;
         x[index] = X;
     }
     VectorXd Y = X;
     for(int i=0;i<n;i++)
     {
-        VectorXd window(FILT_WIN+1);
-        for(int j=0;j<FILT_WIN;j++)
-            window[j] = x[j][i];
-        std::sort(&window[0], &window[FILT_WIN]);
-        Y[i] = window[std::ceil(FILT_WIN/2)];
+        VectorXd win(window+1);
+        for(int j=0;j<window;j++)
+            win[j] = x[j][i];
+        std::sort(&win[0], &win[window]);
+        Y[i] = win[std::ceil(window/2)];
     }
     return Y;
 }
@@ -84,7 +75,7 @@ double deadzone(double e,double dz)
 
 void Walking::initialize(double minDT)
 {
-	state_filt.init(10);
+	state_filt.init(10, 5);
 	lp3_state = VectorXd::Zero(10);
 	lp3_state = VectorXd::Zero(10);
 	shift = 0.0;
@@ -135,7 +126,7 @@ void Walking::calculate_footstep_adjustments(double time, double dt, Contact_Man
 	lp3_state.segment(1,3) = points[CN_LF].p.pos.segment(0,3) + Vector3d(0.0,-sw/2.0,0.0);
 	lp3_state.segment(4,3) = joints.sens_pos.segment(0,3) + Vector3d(shift,0.0,0.0);
 	lp3_state.segment(7,3) = points[CN_RF].p.pos.segment(0,3) + Vector3d(0.0,sw/2.0,0.0);
-	VectorXd lp3_pstate = state_filt.x[(state_filt.index+1)%FILT_WIN];
+	VectorXd lp3_pstate = state_filt.x[(state_filt.index+1)%state_filt.window];
 	state_filt.update(lp3_state);
 	lp3_dstate = (lp3_state - lp3_pstate)/std::max(min_dt,lp3_state[0]-lp3_pstate[0]);	
 

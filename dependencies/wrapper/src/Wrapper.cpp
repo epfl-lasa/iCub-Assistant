@@ -321,11 +321,16 @@ void Wrapper::initializeJoint(VectorXd mode, VectorXd freeze)
 				JointPort[i].ictrl->setControlMode(j,VOCAB_CM_POSITION_DIRECT);
 				JointPort[i].iint->setInteractionMode(j, yarp::dev::VOCAB_IM_STIFF);
 			}
+			else if(mode[map(i,j)] == 2 && freeze[map(i,j)] == 0)
+			{
+				JointPort[i].ictrl->setControlMode(j, VOCAB_CM_TORQUE);
+				JointPort[i].iint->setInteractionMode(j, yarp::dev::VOCAB_IM_COMPLIANT);
+			}
 		}
 	}
 }
 
-void Wrapper::controlJoint(VectorXd mode, VectorXd freeze, VectorXd ref_pos)
+void Wrapper::controlJoint(VectorXd mode, VectorXd freeze, VectorXd ref_pos, VectorXd ref_tau)
 {
 	for(int i=0; i<6; i++)
 	{
@@ -338,6 +343,10 @@ void Wrapper::controlJoint(VectorXd mode, VectorXd freeze, VectorXd ref_pos)
 			else if(mode[map(i,j)] == 1 && freeze[map(i,j)] == 0)
 			{
 				JointPort[i].posdirect->setPosition(j, ref_pos[map(i,j)] / M_PI * 180);
+			}
+			else if(mode[map(i,j)] == 2 && freeze[map(i,j)] == 0)
+			{
+				JointPort[i].itrq->setRefTorque(j, ref_tau[map(i,j)]);
 			}
 		}
 	}
@@ -497,10 +506,9 @@ void Wrapper::readSensors(VectorXd &sens_pos, VectorXd &sens_vel, VectorXd &sens
 		{
 			double position;
 			JointPort[i].encs->getEncoder(j, &position);
+			position *= M_PI / 180.0;
 			sens_vel[map(i,j)+6] = (position - sens_pos[map(i,j)+6]) / dt;
-			sens_vel[map(i,j)+6] *= M_PI / 180.0;
 			sens_pos[map(i,j)+6] = position;
-			sens_pos[map(i,j)+6] *= M_PI / 180.0;
 			JointPort[i].itrq->getTorque(j, &sens_tau[map(i,j)+6]);
 		}
 	}

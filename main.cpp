@@ -89,6 +89,8 @@ void loadData(Wrapper &wrapper, Contact_Manager &points, Joints &joints)
 
 	// update the model
 	points.model.set_state(joints.sens_pos, joints.sens_vel);
+	VectorXd zero_acc = VectorXd::Zero(AIR_N_U);
+	points.model.set_acc(zero_acc);
 	points.update_kinematics();
 }
 
@@ -151,6 +153,7 @@ void rePID(Wrapper &wrapper, bool walk)
 		wrapper.setPidJoint(15-6, 10, 0.3, 0);
 		wrapper.setPidJoint(21-6, 10, 0.3, 0);
 
+		// ankles
 		if(walk)
 		{
 			wrapper.setPidJoint(14-6, 3, 0.3, 0);
@@ -169,6 +172,7 @@ void rePID(Wrapper &wrapper, bool walk)
 			wrapper.setPidJoint(17-6, 10, 0.3, 0);
 			wrapper.setPidJoint(23-6, 10, 0.3, 0);
 		}
+
 	#endif
 }
 
@@ -213,6 +217,12 @@ int main(int argc, char *argv[])
 	// set entire body to position-direct mode
 	for(int i=6;i<AIR_N_U;i++) 
 		joints.mode[i] = 1;
+
+	// set arms to force control in simulation
+	#ifndef HARDWARE
+		for(int i=24;i<24+14;i++) 
+			joints.mode[i] = 2;
+	#endif
 
 	// disable the neck joints
 	for(int i=9;i<12;i++)
@@ -322,7 +332,7 @@ int main(int argc, char *argv[])
 		{
 			// check if the object is feasible to grasp, i.e. reachable and w/o collisions
 			VectorXd copy = joints.Ik_pos0;
-			double IK_time1 = ik.solve(points, copy, joints.freeze);
+			IK_time1 = ik.solve(points, copy, joints.freeze);
 			double IK_error = ik.return_hand_error();
 			feasibility = (IK_error< 0.17) && !collision.check(points);
 		}
@@ -468,12 +478,17 @@ int main(int argc, char *argv[])
 		// Cartesian tasks ////////////////////////////////////////////////////////////////////////////////
 		final_com_pos += (des_com.segment(0,3) + com_adjustment - final_com_pos) * 3 * wrapper.dt;
 		points.load_tasks(vectorbig(final_com_pos,zero_quat), des_lf, des_rf, manip.get_hand(object, true), manip.get_hand(object, false));
-		if(time>calib_time && false) // WARNING
-			manip.compliance_control(points, manip.force_amp);
+		#ifdef HARDWARE
+			if(time>calib_time) // WARNING
+				manip.compliance_control(points);
+		#else
+			manip.jacobian_transpose(points, joints);
+		#endif
+
 
 		// whole-body IK ////////////////////////////////////////////////////////////////////////////////
 		joints.ref_pos = joints.Ik_pos0;
-		double IK_time2 = ik.solve(points, joints.ref_pos, joints.freeze);
+		IK_time2 = ik.solve(points, joints.ref_pos, joints.freeze);
 
 		// walking stuff
 		if(S==WALK)
@@ -491,10 +506,8 @@ int main(int argc, char *argv[])
 
 			// impose lower-body motions and freeze the upper body
 			joints.freeze.segment(24,14) = VectorXd::Ones(14);
-			double IK_time3 = ik.solve(points, joints.ref_pos, joints.freeze);
+			IK_time3 = ik.solve(points, joints.ref_pos, joints.freeze);
 			joints.freeze.segment(24,14) = VectorXd::Zero(14);
-
-
 
 			// apply joint policies
 			walking.joint_tasks(time, wrapper.dt, points, joints);
@@ -503,7 +516,10 @@ int main(int argc, char *argv[])
 		// send final commands //////////////////////////////////////////////////////////////////////////
 		double e = exp(-pow(time/1.0,2.0));  // WARNING
 		joints.com_pos = joints.init_pos * e + joints.ref_pos * (1.0-e);
-		wrapper.controlJoint(joints.mode.segment(6,AIR_N_U-6), joints.freeze.segment(6,AIR_N_U-6), joints.com_pos.segment(6,AIR_N_U-6));
+		wrapper.controlJoint(	joints.mode.segment(6,AIR_N_U-6), 
+								joints.freeze.segment(6,AIR_N_U-6), 
+								joints.com_pos.segment(6,AIR_N_U-6),
+								joints.ref_tau.segment(6,AIR_N_U-6));
 	}
 
 	wrapper.initializeJoint(VectorXd::Zero(AIR_N_U-6), joints.freeze.segment(6,AIR_N_U-6));

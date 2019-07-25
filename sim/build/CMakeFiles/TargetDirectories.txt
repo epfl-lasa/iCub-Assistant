@@ -1,0 +1,4 @@
+/home/sfaraji/Dropbox/icub/sim/build/CMakeFiles/rebuild_cache.dir
+/home/sfaraji/Dropbox/icub/sim/build/CMakeFiles/edit_cache.dir
+/home/sfaraji/Dropbox/icub/sim/build/CMakeFiles/main.dir
+/home/sfaraji/Dropbox/icub/sim/build/CMakeFiles/Model.dir

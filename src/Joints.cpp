@@ -24,6 +24,7 @@ Joints::Joints()
 	Ik_pos0  = VectorXd::Zero(AIR_N_U+1); Ik_pos0[AIR_N_U] = 1;
 	Ik_pos0[15] = -0.3;
 	Ik_pos0[21] = -0.3;
+	ref_tau  = VectorXd::Zero(AIR_N_U);
 	sens_vel = VectorXd::Zero(AIR_N_U);
 	sens_acc = VectorXd::Zero(AIR_N_U);
 	sens_tau = VectorXd::Zero(AIR_N_U);

@@ -3,21 +3,18 @@
 #include "Contacts.h"
 #include "Joints.h"
 
-#define FILT_WIN 5
-
 //! A median filter function
 class median_filter
 {
 public:
 
     int n;
-    VectorXd x[FILT_WIN];
+	int window;
+    vector<VectorXd> x;
     int index;
     bool first_input;
 
-    void init(int N);
-    median_filter();
-    median_filter(int N);
+    void init(int N, int win);
     VectorXd update(VectorXd X);
 };
 

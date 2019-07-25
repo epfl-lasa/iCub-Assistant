@@ -15,6 +15,7 @@ public:
 	VectorXd init_pos;
 	VectorXd Ik_pos0;
 	VectorXd com_pos;
+	VectorXd ref_tau;
 	VectorXd sens_vel;
 	VectorXd sens_acc;
 	VectorXd sens_tau;

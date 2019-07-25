@@ -2,6 +2,7 @@
 
 #include "Contacts.h"
 #include "Object.h"
+#include "Walking.h"
 
 class Manipulation
 {
@@ -11,6 +12,7 @@ public:
 	VectorXd avg_lh, avg_rh;
 	VectorXd force_lh, force_rh;
 	VectorXd reading_lh, reading_rh;
+	VectorXd grav_compns;
 
 	double gamma;
 	double dgamma;
@@ -35,7 +37,8 @@ public:
 	void read_forces(Contact_Manager &points);
 	void initial_filtering(Contact_Manager &points, double dt);
 	void secondary_filtering(Contact_Manager &points, double dt);
-	void compliance_control(Contact_Manager &points, double force_amp);
+	void compliance_control(Contact_Manager &points);
+	void jacobian_transpose(Contact_Manager &points, Joints &joints);
 	void update(bool reachable, double dt, Object &object, bool grasp);
 	bool grasped(double eps_obj);
 	bool released(double eps_obj);

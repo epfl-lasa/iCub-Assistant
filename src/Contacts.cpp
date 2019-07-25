@@ -163,7 +163,7 @@ void Contact_Manager::control(Contact_Name i, Geom_Point ref_pos)
         EE[i].T.F_ref    = EE[i].T.K[0] * (EE[i].ref_p.pos - EE[i].p.pos).segment(0,3)
                             + EE[i].T.K[1] * (EE[i].ref_p.vel - EE[i].p.vel).segment(0,3);
     if(EE[i].contact_type==CT_FULL || EE[i].contact_type==CT_ROTATION)
-        EE[i].R.F_ref    = EE[i].R.K[0] * quat_log(quat_sub(EE[i].ref_p.pos.segment(3,4), EE[i].p.pos.segment(3,4)))
+        EE[i].R.F_ref    = EE[i].R.K[0] * quat_log(quat_sub(EE[i].ref_p.pos.segment(3,4), EE[i].p.pos.segment(3,4))).segment(0,3)
                             + EE[i].R.K[1] * (EE[i].ref_p.vel - EE[i].p.vel).segment(3,3);
 
 }
