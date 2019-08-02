@@ -276,6 +276,7 @@ void Wrapper::initObject(int k, string name)
 	if(!ObjectPorts[k].port.isClosed())
 		ObjectPorts[k].port.close();
 	setupSensorConnector(ObjectPorts[k], name);
+	ObjectFilter[k].init(7,10);
 }
 
 VectorXd Wrapper::readObject(int k)
@@ -291,6 +292,8 @@ VectorXd Wrapper::readObject(int k)
 			for(int i=0; i<7; i++)
 				Object[k][i] = ObjectPorts[k].values->get(i).asDouble();
 	}
+	ObjectFilter[k].update(Object[k]);
+	// can call ObjectFilter[k].if_frozen_signal() to check if data is coming
 	return Object[k];
 }
 
@@ -382,6 +385,9 @@ void Wrapper::setPidJoint(int k, double kp, double kd, double ki)
 void Wrapper::getPidJoint(int k, double& kp, double& kd, double& ki)
 {
 	yarp::dev::Pid * pid = new yarp::dev::Pid;
+	kp = 0; 
+	kd = 0; 
+	ki = 0;
 	for(int i=0; i<6; i++)
 	{
 		for(int j=0; j<JointPort[i].number;j++)
@@ -529,3 +535,98 @@ int Wrapper::applyExternalWrench(string link, VectorXd Force, double duration)
 	ExternalWrenchPort.port.write();
 }
 
+void Wrapper::rePID(bool walk)
+{
+	MatrixXd gain = MatrixXd(32,3);
+	#ifdef HARDWARE
+		gain << 32000.00, 6000.00, 60.00,
+				32000.00, 6000.00, 60.00,
+				32000.00, 6000.00, 60.00,
+				50.00, 500.00, 1.00,
+				50.00, 500.00, 1.00,
+				100.00, 700.00, 2.00,
+				32000.00, 100.00, 60.00,
+				-32000.00, -100.00, -60.00,
+				32000.00, 100.00, 60.00, 
+				-32000.00, -100.00, -60.00,
+				-32000.00, -100.00, -60.00, 
+				-32000.00, -100.00, -60.00, 
+				32000.00, 100.00, 60.00, 
+				-32000.00, -100.00, -60.00,
+				32000.00, 100.00, 60.00, 
+				-32000.00, -100.00, -60.00,
+				-32000.00, -100.00, -60.00, 
+				-32000.00, -100.00, -60.00, 
+				32000.00, 50.00, 60.00, 
+				32000.00, 50.00, 60.00, 
+				10000.00, 0.00, 10.00, 
+				32000.00, 20.00, 60.00,
+				200.00, 1000.00, 1.00, 
+				100.00, 100.00, 2.00, 
+				100.00, 100.00, 2.00, 
+				32000.00, 50.00, 60.00,
+				32000.00, 50.00, 60.00, 
+				10000.00, 0.00, 10.00, 
+				32000.00, 20.00, 60.00, 
+				200.00, 1000.00, 1.00,
+				100.00, 100.00, 2.00,
+				100.00, 100.00, 2.00;
+		for(int i=0;i<32;i++)
+			setPidJoint(i,gain(i,0), gain(i,1), gain(i,2)*0);
+	#else
+		gain << 1.745, 0.174, 0.174, 
+				1.745, 0.174, 0.174, 
+				1.745, 0.174, 0.174, 
+				1.745, 0.122, 0.003, 
+				1.745, 0.122, 0.003, 
+				1.745, 0.122, 0.003, 
+				17.453, 0.174, 0.174, 
+				17.453, 0.174, 0.174, 
+				17.453, 0.174, 0.174, 
+				17.453, 0.174, 0.174, 
+				17.453, 0.174, 0.174, 
+				17.453, 0.174, 0.174, 
+				17.453, 0.174, 0.174, 
+				17.453, 0.174, 0.174, 
+				17.453, 0.174, 0.174, 
+				17.453, 0.174, 0.174, 
+				17.453, 0.174, 0.174, 
+				17.453, 0.174, 0.174, 
+				1.745, 0.174, 0.174, 
+				1.745, 0.174, 0.174, 
+				1.745, 0.174, 0.174, 
+				1.745, 0.174, 0.174, 
+				1.745, 0.174, 0.174, 
+				1.745, 0.174, 0.174, 
+				1.745, 0.174, 0.174, 
+				1.745, 0.174, 0.174, 
+				1.745, 0.174, 0.174, 
+				1.745, 0.174, 0.174, 
+				1.745, 0.174, 0.174, 
+				1.745, 0.174, 0.174, 
+				1.745, 0.174, 0.174, 
+				1.745, 0.174, 0.174;
+		for(int i=0;i<32;i++)
+			setPidJoint(i,gain(i,0), gain(i,1), gain(i,2)*0);
+		if(walk)
+		{
+			// hips
+			setPidJoint(13-6, 10, 0.6, 0);
+			setPidJoint(19-6, 10, 0.6, 0);
+			setPidJoint(12-6, 10, 0.6, 0);
+			setPidJoint(18-6, 10, 0.6, 0);
+			
+			// knees
+			setPidJoint(15-6, 10, 0.3, 0);
+			setPidJoint(21-6, 10, 0.3, 0);
+
+			// ankles
+			setPidJoint(14-6, 3, 0.3, 0);
+			setPidJoint(20-6, 3, 0.3, 0);
+			setPidJoint(16-6, 3, 0.1, 0);
+			setPidJoint(22-6, 3, 0.1, 0);
+			setPidJoint(17-6, 3, 0.1, 0);
+			setPidJoint(23-6, 3, 0.1, 0);
+		}
+	#endif
+}

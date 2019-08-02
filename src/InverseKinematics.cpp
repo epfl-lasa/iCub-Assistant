@@ -1,4 +1,4 @@
-#include "IK.h"
+#include "InverseKinematics.h"
 using namespace std;
 using namespace Eigen;
 
@@ -13,7 +13,7 @@ IKCG_Params IKCG_params;
 IKCG_Workspace IKCG_work;
 IKCG_Settings IKCG_settings;
 
-IK::IK()
+InverseKinematics::InverseKinematics()
 {
 	damp = 0.01;
 	num_iter = 15;
@@ -24,7 +24,7 @@ IK::IK()
 	damping = damp * VectorXd::Ones(AIR_N_U);
 }
 
-void IK::update_model(Contact_Manager &points, VectorXd q0)
+void InverseKinematics::update_model(Contact_Manager &points, VectorXd q0)
 {
 	VectorXd dq0 = VectorXd::Zero(AIR_N_U);
 	points.model.set_state(q0, dq0);
@@ -62,9 +62,9 @@ void IK::update_model(Contact_Manager &points, VectorXd q0)
 	}
 }
 
-VectorXd IK::solve_QP(VectorXd &qref, VectorXd &qlow, VectorXd &qup)
+VectorXd InverseKinematics::solve_QP(VectorXd &qref, VectorXd &qlow, VectorXd &qup)
 {
-	VectorXd dX   = Xr - X0;
+	VectorXd dX = Xr - X0;
 
 	IKCG_set_defaults();
 	IKCG_setup_indexing();
@@ -90,13 +90,13 @@ VectorXd IK::solve_QP(VectorXd &qref, VectorXd &qlow, VectorXd &qup)
 	return dq;
 }
 
-double IK::return_hand_error()
+double InverseKinematics::return_hand_error()
 {
 	// call exactly after solving IK
 	return vectorbig((Xr-X0).segment(18,3), (Xr-X0).segment(24,3)).norm();
 }
 
-double IK::solve(Contact_Manager &points, VectorXd& ref_pos, VectorXd freeze)
+double InverseKinematics::solve(Contact_Manager &points, VectorXd& ref_pos, VectorXd freeze)
 {
 	timeval start, end;
 	gettimeofday(&start, NULL);
@@ -110,6 +110,12 @@ double IK::solve(Contact_Manager &points, VectorXd& ref_pos, VectorXd freeze)
 		for(int i=0;i<AIR_N_U;i++)
 			if(freeze[i]==1)
 				J.block(0,i,N_TASK,1) *= 0;
+
+		// avoid singular knee positions
+		points.model.qmax[15-6] = -10;
+		points.model.qmax[21-6] = -10;
+		points.model.qmin[25-6] = 10;
+		points.model.qmin[32-6] = 10;
 
 		VectorXd qlow = points.model.qmin/180.0*M_PI - ref_pos.segment(6,AIR_N_U-6);
 		VectorXd qup  = points.model.qmax/180.0*M_PI - ref_pos.segment(6,AIR_N_U-6);

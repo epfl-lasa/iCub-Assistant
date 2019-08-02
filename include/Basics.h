@@ -27,7 +27,7 @@
 #include <termios.h>
 #include <sys/time.h>
 #include <Eigen/Dense>
-#include <quaternions.h>
+#include <Quaternions.h>
 #include "utils.h"
 
 #define inf 1e20

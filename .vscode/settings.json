@@ -1,6 +1,11 @@
 {
     "files.associations": {
         "iostream": "cpp",
-        "ostream": "cpp"
+        "ostream": "cpp",
+        "*.tcc": "cpp",
+        "cmath": "cpp",
+        "complex": "cpp",
+        "iomanip": "cpp",
+        "fstream": "cpp"
     }
 }

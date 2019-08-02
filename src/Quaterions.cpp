@@ -1,4 +1,4 @@
-#include "quaternions.h"
+#include "Quaternions.h"
 
 void dc2ang(double dircos[3][3],
     double *a1,

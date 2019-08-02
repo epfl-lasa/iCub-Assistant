@@ -1,0 +1,7 @@
+*#*
+*~*
+*.o
+*.cmake
+*.make
+sim/build/*
+real/build/*

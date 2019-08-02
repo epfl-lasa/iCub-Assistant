@@ -2,7 +2,7 @@
 #include "Contacts.h"
 #include "Joints.h"
 
-class IK
+class InverseKinematics
 {
 public:
 
@@ -14,8 +14,8 @@ public:
 	MatrixXd J;
 	VectorXd damping;
 
-	IK();
-	~IK() {};
+	InverseKinematics();
+	~InverseKinematics() {};
 	void update_model(Contact_Manager &points, VectorXd q0);
 	VectorXd solve_QP(VectorXd &qref, VectorXd &qlow, VectorXd &qup);
 	double return_hand_error();

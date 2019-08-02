@@ -1,28 +1,30 @@
 #include "Object.h"
 
-VectorXd get_hand_general(Object &object, VectorXd center, double shrink, bool left)
-{
-	VectorXd out = VectorXd::Zero(7);
-	Vector3d direction = Vector3d(0,0,0);
-	direction[object.grasp_axis] = (object.dim[object.grasp_axis]/2.0 + shrink * object.expansion) * (left ? 1 : -1);
-	out.segment(0,3) = center.segment(0,3) + quat2dc(center.segment(3,4)) * direction;
-	out.segment(3,4) = quat_mul(center.segment(3,4), ang2quat(Vector3d(0,-M_PI/2,0)));
-	return out;
-}
-
 Object::Object()
 {
 	sens_pos = VectorXd::Zero(7);
 	sens_vel = VectorXd::Zero(6);
 	dim = VectorXd::Zero(3);
 	expansion = 0;
-	grasp_axis = 0;
+	grasp_axis = Vector3d(0, 1, 0);
+	grasp_rot = zero_quat;
 	top_marker = false;
+	max_force = 0;
+	enable_optimal_grasp();
 }
 
 VectorXd Object::get_hand(bool left)
 {
-	return get_hand_general(*this, sens_pos, 1, left);
+	VectorXd out = VectorXd::Zero(7);
+	Vector3d direction = grasp_axis;
+	direction *= abs(double(grasp_axis.adjoint() * dim))/2 + expansion;
+	direction *= left ? 1.0 : -1.0;
+	out.segment(0,3) = sens_pos.segment(0,3) + quat2dc(sens_pos.segment(3,4)) * direction;
+	Vector4d rot = local_rot(Vector3d(0,1,0), grasp_axis);
+	rot = quat_mul(rot, grasp_rot);
+	rot = quat_mul(rot, ang2quat(Vector3d(0,-M_PI/2,0)));
+	out.segment(3,4) = quat_mul(sens_pos.segment(3,4), rot);
+	return out;
 }
 
 VectorXd trans7_add(VectorXd a, VectorXd b)
@@ -61,7 +63,10 @@ VectorXd trans7_scale(VectorXd a, double b)
 bool Object::update_position(VectorXd P_B, VectorXd P_lf, VectorXd P_rf, VectorXd P_R, VectorXd P_obj)
 {
 	if(P_R.isZero(0) || P_obj.isZero(0)) // some mocap port is not working ...
+	{
+		cout << " Some mocap data port is not set up properly" << endl;
 		return false;
+	}
 
 	// This function brings the Object to a frame attached to the mid-foot point, heading forward
 	// model's base frame: P_B
@@ -82,29 +87,80 @@ bool Object::update_position(VectorXd P_B, VectorXd P_lf, VectorXd P_rf, VectorX
 	// reality's object frame in reality's mid-foot frame
 	VectorXd P_obj_Fp = trans7_sub(P_obj_R, P_Fp_R);
 
-	apply_mocap_thresholds(P_obj_Fp);
-
 	sens_pos = P_obj_Fp;
 
 	if(top_marker)
 		sens_pos.segment(0,3) -= quat2dc(sens_pos.segment(3,4)) * Vector3d(0,0,dim[2]/2.0);
 
+	optimize_grasp();
+
 	return true;
 }
 
-void apply_mocap_thresholds(VectorXd &pos)
+Vector4d Object::local_rot(Vector3d v1, Vector3d v2)
 {
-	// intuitive thresholds on feasible positioins
-	pos[0] = truncate_command(pos[0], 0.5, 0.0);
-	pos[1] = truncate_command(pos[1], 0.5, -0.5);
-	pos[2] = truncate_command(pos[2], 1.5, 0.0);
+	// if(v1.adjoint()*v2 < (-1 + 1e-3))
+	// 	return ang2quat(Vector3d(0,M_PI,0));
+	// if(v1.adjoint()*v2 > (1 - 1e-3))
+	// 	return zero_quat;
 
-	// intuitive thresholds on feasible orientations
-	double theta_max = M_PI/4; // in any direction
-	if(pos.segment(3,4).adjoint()*zero_quat < cos(theta_max/2.0))
+	Vector4d q;
+	Vector3d a = v1.cross(v2);
+	if(v1.adjoint()*v2 < (-1 + 1e-3))
+	 	a = abs(v1[0]) > abs(v1[2]) ? Vector3d(-v1[1], v1[0], 0) : Vector3d(0, -v1[2], v1[1]);
+	q.segment(0,3) = a;
+	q[3] = sqrt(v1.squaredNorm() * v2.squaredNorm()) + v1.adjoint()*v2;
+	return q.normalized();
+}
+
+void Object::optimize_grasp()
+{
+	if(allow_search)
 	{
-		double alpha = ( cos(theta_max/2.0) - 1.0) / ( pos.segment(3,4).adjoint()*zero_quat - 1.0);
-		pos.segment(3,4) = alpha * (pos.segment(3,4)-zero_quat)*alpha + zero_quat;
-		pos.segment(3,4) = pos.segment(3,4).normalized();
+		// now decide which side to grasp
+		MatrixXd map = MatrixXd(6,3);
+		map <<  1, 0, 0,
+				-1, 0, 0,
+				0, 1, 0,
+				0, -1, 0,
+				0, 0, 1,
+				0, 0, -1;
+		double min_diff = 1e6;
+		Vector3d ax_diff = Vector3d(0,1,0);
+		Vector4d rot_diff = zero_quat;
+		for(int i=0;i<6;i++)
+		{
+			// search over grasping sides
+			Vector3d ax = map.block(i,0,1,3).transpose();
+			for(int j=0;j<4;j++)
+			{
+				// search over different grasp orientations around the grasp axis
+				Vector4d rot_extra = ang2quat(Vector3d(0,1,0) * j * M_PI/2.0);
+				Vector4d rot = local_rot(Vector3d(0,1,0), ax);
+				rot = quat_mul(rot, rot_extra);
+				double error = quat_log(quat_mul(sens_pos.segment(3,4), rot)).norm();
+				if(error<min_diff)
+				{
+					ax_diff = ax;
+					min_diff = error;
+					rot_diff = rot_extra;
+				}
+			}
+		}
+		grasp_axis = ax_diff;
+		grasp_rot = rot_diff;
 	}
+}
+
+void Object::enable_optimal_grasp()
+{
+	allow_search = true;
+	optimize_grasp();
+}
+
+void Object::disable_optimal_grasp()
+{
+	allow_search = false;
+	grasp_axis = Vector3d(0, 1, 0);
+	grasp_rot = zero_quat;
 }

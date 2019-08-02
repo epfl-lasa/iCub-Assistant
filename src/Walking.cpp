@@ -1,41 +1,5 @@
 #include "Walking.h"
 
-void median_filter::init(int N, int win)
-{
-    window = win;
-	index = window-1;
-    first_input = true;
-    n = N;
-    for(int i=0;i<window;i++)
-        x.push_back(VectorXd::Zero(n));
-}
-
-VectorXd median_filter::update(VectorXd X)
-{
-    assert(X.size()==n);
-    if(first_input)
-    {
-        for(int i=0;i<window;i++)
-            x[i] = X;
-        first_input = false;
-    }
-    else
-    {
-        index = (index+1)%window;
-        x[index] = X;
-    }
-    VectorXd Y = X;
-    for(int i=0;i<n;i++)
-    {
-        VectorXd win(window+1);
-        for(int j=0;j<window;j++)
-            win[j] = x[j][i];
-        std::sort(&win[0], &win[window]);
-        Y[i] = win[std::ceil(window/2)];
-    }
-    return Y;
-}
-
 Vector4d projection_gains(double t, double T)
 {
 	// mass = 27.6, height = 1.05, iCub Robot
@@ -93,7 +57,7 @@ void Walking::initialize(double minDT)
 	force_rf = 0.0;
 	hip_gain_K = 1.0;
 	min_dt = minDT;
-	walk_start = 0;
+	start = 0;
 }
 
 void Walking::update(double time, double dt, Contact_Manager &points)
@@ -140,7 +104,7 @@ void Walking::calculate_footstep_adjustments(double time, double dt, Contact_Man
 	Vector4d ery(	lp3_state[8]-lp3_state[2],   lp3_state[5]-lp3_state[2], 
 					lp3_dstate[8]-lp3_dstate[2], lp3_dstate[5]-lp3_dstate[2]);
 
-	// dead-zone functions
+	// dead-zone functions to filter noise
 	#ifdef HARDWARE
 		elx[0] = deadzone(elx[0]-(0.000), 0.001);
 		elx[1] = deadzone(elx[1]-(-0.016), 0.002);
@@ -176,8 +140,8 @@ void Walking::calculate_footstep_adjustments(double time, double dt, Contact_Man
 	fbry = phase==0 ? fbry : truncate_command(double(ey.transpose()*K), 0.2, -0.2);
 
 	// self collision avoidance
-	//fbly = max(fbly, lp3_state[8]-lp3_state[5] - 0.1*0);
-	//fbry = min(fbry, lp3_state[2]-lp3_state[5] + 0.1*0);
+	// fbly = max(fbly, lp3_state[8]-lp3_state[5] - 0.1*0);
+	// fbry = min(fbry, lp3_state[2]-lp3_state[5] + 0.1*0);
 }
 
 void Walking::apply_speed_limits()
@@ -187,8 +151,8 @@ void Walking::apply_speed_limits()
 		ref_vy = truncate_command(ref_vy, 0.1, -0.1);
 		ref_w  = truncate_command(ref_w , 0.5, -0.5);
 	#else
-		ref_vx = truncate_command(ref_vx, 0.5, -0.5);
-		ref_vy = truncate_command(ref_vy, 0.2, -0.2);
+		ref_vx = truncate_command(ref_vx, 0.3, -0.3);
+		ref_vy = truncate_command(ref_vy, 0.3, -0.3);
 		ref_w  = truncate_command(ref_w , 1.0, -1.0);
 	#endif
 }
@@ -231,7 +195,7 @@ void Walking::joint_tasks(double time, double dt, Contact_Manager &points, Joint
 	joints.ref_pos[13] += -desired_roll;
 	joints.ref_pos[19] += desired_roll;
 
-	// current base orientation
+	// current base orientation/2
 	MatrixXd cd = quat2dc(points[CN_CM].p.pos.segment(3,4));
 	double roll = atan2(cd(2,1), cd(2,2));
 	double pitch  = -asin(cd(2,0));
@@ -239,6 +203,9 @@ void Walking::joint_tasks(double time, double dt, Contact_Manager &points, Joint
 	// desired base orientations
 	double desired_pitch = quat2ang(getQ(joints.ref_pos))[1];
 	desired_roll += quat2ang(getQ(joints.ref_pos))[0];
+
+	// this stabilizes backward walking, given the limited ankle ranges
+	desired_pitch += -min(ref_vx, 0.0) * 0.2;
 
 	// calculate fblx, fbrx, fbly, fbry
 	calculate_footstep_adjustments(time, dt, points, joints);
@@ -248,15 +215,12 @@ void Walking::joint_tasks(double time, double dt, Contact_Manager &points, Joint
 	int index_l = 6+6;
 	int index_r = 6+12;
 
-	Vector4d hip_des;
-	hip_des[0] = joints.ref_pos[index_l]; 
-	hip_des[1] = joints.ref_pos[index_r];
-	hip_des[2] = joints.ref_pos[index_l+1];
-	hip_des[3] = joints.ref_pos[index_r+1];
+	// enable stepping after a while
+	bool enable = (time-start) > (2*Tstep);
 
 	// hip pitch joints
 	double Pitch = pitch - desired_pitch;
-	double Pitch_feedback = Pitch * hip_gain_K;
+	double Pitch_feedback = Pitch * hip_gain_K * 2;
 	joints.ref_pos[index_l] = 	ar * (joints.ref_pos[index_l] + Pitch + fblx/ll) + al * (-Pitch_feedback + joints.sens_pos[index_l]);
 	joints.ref_pos[index_r] = 	al * (joints.ref_pos[index_r] + Pitch + fblx/ll) + ar * (-Pitch_feedback + joints.sens_pos[index_r]);
 
@@ -267,12 +231,10 @@ void Walking::joint_tasks(double time, double dt, Contact_Manager &points, Joint
 	joints.ref_pos[index_r+1] = al * (joints.ref_pos[index_r+1] + Roll - fbry/ll) + ar * (-Roll_feedback + joints.sens_pos[index_r+1]);
 
 	// apply hip limits to avoid dramatic failure!
-	// double sagittal_bound = 0.4;
-	// joints.ref_pos[index_l] = truncate_command(joints.ref_pos[index_l], hip_des[0] + sagittal_bound, hip_des[0] - sagittal_bound);
-	// joints.ref_pos[index_r] = truncate_command(joints.ref_pos[index_r], hip_des[1] + sagittal_bound, hip_des[1] - sagittal_bound);
-	// double lateral_bound = 0.3;
-	// joints.ref_pos[index_l+1] = truncate_command(joints.ref_pos[index_l+1], hip_des[2] + lateral_bound, hip_des[2] - lateral_bound);
-	// joints.ref_pos[index_r+1] = truncate_command(joints.ref_pos[index_r+1], hip_des[3] + lateral_bound, hip_des[3] - lateral_bound);
+	joints.ref_pos[index_l] = truncate_command(joints.ref_pos[index_l], 0.6, -0.5);
+	joints.ref_pos[index_r] = truncate_command(joints.ref_pos[index_r], 0.6, -0.5);
+	joints.ref_pos[index_l+1] = truncate_command(joints.ref_pos[index_l+1], 0.5, -0.3);
+	joints.ref_pos[index_r+1] = truncate_command(joints.ref_pos[index_r+1], 0.5, -0.3);
 }
 
 bool Walking::early_phase(double time, double dt)

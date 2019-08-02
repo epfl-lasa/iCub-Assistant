@@ -1,7 +1,7 @@
 #pragma once
 
 #include "Contacts.h"
-#include "mesh_utils.h"
+#include "MeshUtils.h"
 
 class Collision
 {

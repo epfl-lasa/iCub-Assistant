@@ -10,6 +10,7 @@
 #include <yarp/os/Bottle.h>
 
 #include "IMU.h"
+#include "MedianFilter.h"
 #include <pthread.h>
 #include <sys/time.h>
 #include <iostream>
@@ -85,6 +86,7 @@ public:
 	// objects
 	sensorConnector ObjectPorts[10];
 	VectorXd Object[10];
+	MedianFilter ObjectFilter[10];
 	void initObject(int k, string name);
 	VectorXd readObject(int k);
 
@@ -99,6 +101,9 @@ public:
 	// external wrenches
 	sensorConnector ExternalWrenchPort;
 	int applyExternalWrench(string link, VectorXd Force, double duration);	
+
+	// change PID gains
+	void rePID(bool walk);
 
 	// IMU
 	pthread_mutex_t mutex;

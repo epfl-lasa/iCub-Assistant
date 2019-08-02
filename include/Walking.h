@@ -2,27 +2,13 @@
 
 #include "Contacts.h"
 #include "Joints.h"
-
-//! A median filter function
-class median_filter
-{
-public:
-
-    int n;
-	int window;
-    vector<VectorXd> x;
-    int index;
-    bool first_input;
-
-    void init(int N, int win);
-    VectorXd update(VectorXd X);
-};
+#include "MedianFilter.h"
 
 class Walking
 {
 public:
 
-	median_filter state_filt;
+	MedianFilter state_filt;
 	VectorXd lp3_state, lp3_dstate;
 	double shift;
 	double fblx, fbrx, fbly, fbry;
@@ -34,7 +20,7 @@ public:
 	double al, ar;
 	double hip_gain_K;
 	double min_dt;
-	double walk_start;
+	double start;
 	bool hardware;
 
 	void initialize(double minDT);
