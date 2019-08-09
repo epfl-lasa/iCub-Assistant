@@ -260,7 +260,7 @@ public:
     /*!
     * \Define Cartesian tasks
     */
-    void load_tasks(VectorXd com, VectorXd lf, VectorXd rf, VectorXd lh, VectorXd rh);
+    void load_tasks(VectorXd com, VectorXd lf, VectorXd rf, VectorXd hands);
 
     /*!
     * \Tasks costs in inverse kinematics

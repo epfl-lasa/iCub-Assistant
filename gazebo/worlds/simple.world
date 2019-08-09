@@ -116,7 +116,19 @@
 	<include>
       <uri>../objects/BoxSmall</uri>
       <name>BoxSmall</name>
-      <pose frame=''>0.3 0 0.3 0 -0 0</pose>
+      <pose frame=''>0.3 -0.5 0.3 0 -0 0</pose>
+      <static>0</static>
+    </include>
+	<include>
+      <uri>../objects/Broom</uri>
+      <name>Broom</name>
+      <pose frame=''>0.3 0.5 0.6 0 -0 0</pose>
+      <static>0</static>
+    </include>
+	<include>
+      <uri>../objects/Cart</uri>
+      <name>Cart</name>
+      <pose frame=''>0.3 0 0.5 0 -0 0</pose>
       <static>0</static>
     </include>
   </world>

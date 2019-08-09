@@ -6,6 +6,7 @@
         "cmath": "cpp",
         "complex": "cpp",
         "iomanip": "cpp",
-        "fstream": "cpp"
+        "fstream": "cpp",
+        "functional": "cpp"
     }
 }

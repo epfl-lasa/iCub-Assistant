@@ -85,22 +85,22 @@ int main(int argc, char *argv[])
 	wrapper.initialize();
 	wrapper.rePID(false);
 
-	// Initialize reading robot pos from gazebo/mocap
-	#ifdef HARDWARE
-	#else
-		wrapper.initObject(0, wrapper.robotName + "/get_root_link_WorldPose:o");
-	#endif
-	if(wrapper.readObject(0).isZero())
-		{cout << "Robot mocap problem" << endl; return 1;}
-
-	// Initialize reading object pos from gazebo/mocap
+	// Initialize reading robot/object pos from gazebo/mocap
 	#ifdef HARDWARE
 		wrapper.initObject(1, "/icub/DesiredCoMVelocity:o");
 	#else
+		wrapper.initObject(0, wrapper.robotName + "/get_root_link_WorldPose:o");
 		wrapper.initObject(1, "/BoxSmall/GraspedObject_WorldPose:o");
+		wrapper.initObject(2, "/Broom/GraspedObject_WorldPose:o");
+		wrapper.initObject(3, "/Cart/GraspedObject_WorldPose:o");
 	#endif
-	if(wrapper.readObject(1).isZero())
-		{cout << "Object 1 mocap problem" << endl; return 1;}
+	yarp::os::Time::delay(1);
+	for(int i=0; i<=3; i++)
+		if(wrapper.readObject(i).isZero())
+			{
+				cout << "WARNING: Object" << i << "mocap problem" << endl; 
+				// return 1;
+			}
 
 	// logger
 	std::ofstream OutRecord;
@@ -157,25 +157,41 @@ int main(int argc, char *argv[])
 	Walking walking;
 	walking.initialize(minTimeStep);
 
-	// Object properties, be default facing forward
-	Object Pfront;
-	Pfront.sens_pos = des_obj;
+	// Object properties, by default facing forward
+	Object Pfront(des_obj);
 	Pfront.dim = Vector3d(0.2, 0.2, 0.2);
-	Pfront.expansion = 0.1;
+	Pfront.max_expansion = 0.1;
 	Pfront.max_force = 20;
-	#ifdef HARDWARE
-		Pfront.top_marker = true;
-	#endif
-
-	// sensed from the environment
-	Object Pobject1 = Pfront;
-	Object Pdrop = Pfront;
-	Object *Ptarget = &Pfront;
 
 	// grasping controller
 	Manipulation manip;
-	manip.set_start_point(Ptarget);
-	manip.set_ideal_point(Ptarget);
+	Object *Ptarget = &Pfront;
+	VectorXd Pdrop = des_obj;
+	manip.set_ideal_point(Ptarget->get_hand_ideal());
+	manip.set_start_point();
+
+	// sensed from the environment
+	Object BoxSmall = Pfront;
+	#ifdef HARDWARE
+		BoxSmall.top_marker = true;
+	#endif
+	
+	Object Broom(des_obj);
+	Broom.dim = Vector3d(0.02, 0.02, 0.4);
+	Broom.max_expansion = 0.1;
+	Broom.max_force = 0;
+	Broom.grasp_offset = Vector3d(0,0.1,0);
+
+	Object Cart(des_obj);
+	Cart.ideal_pos[2] = 0.54;
+	Cart.dim = Vector3d(0.02, 0.4, 0.02);
+	Cart.max_expansion = 0.1;
+	Cart.max_force = 0;
+	Cart.grasp_offset = Vector3d(0,0.1,0);
+	Cart.grasp_opposite = false;
+	Cart.ideal_grasp_axis = Vector3d(0,0,1);
+
+	Ptarget = &Broom;
 
 	// prepare for reading the keyboard
 	nonblock(1);
@@ -216,9 +232,11 @@ int main(int argc, char *argv[])
 			Root.segment(3,4) = quat_mul(Root.segment(3,4), ang2quat(Vector3d(0,0,M_PI))); 
 		#endif
 
-		// object's world position
+		// object world positions
 		VectorXd Base = points.model.get_trans7(0,zero_v3);
-		Pobject1.update_position(Base, points[CN_LF].p.pos, points[CN_RF].p.pos, Root, wrapper.readObject(1));
+		BoxSmall.update_position(Base, points[CN_LF].p.pos, points[CN_RF].p.pos, Root, wrapper.readObject(1));
+		Broom.update_position(Base, points[CN_LF].p.pos, points[CN_RF].p.pos, Root, wrapper.readObject(2));
+		Cart.update_position(Base, points[CN_LF].p.pos, points[CN_RF].p.pos, Root, wrapper.readObject(3));
 
 		/////////////////////////////////////////////////////////////////////////////////////////////////////////////
 		// read keyboard signals ////////////////////////////////////////////////////////////////////////////////////
@@ -264,48 +282,69 @@ int main(int argc, char *argv[])
 
 		// picking state machine signals
 		double eps_obj 		= 0.05; // if hands reached the destination
-		bool reached 		= ((manip.xR[0]+manip.xR[1])*0.5 - Ptarget->sens_pos.segment(0,3)).norm() < eps_obj; 
 		double eps_rest		= 0.02; // if hands reached the default position
-		bool stable 		= ((manip.xR[0]+manip.xR[1])*0.5 - Pfront.sens_pos.segment(0,3)).norm() < eps_rest; 
-	
+
 		// picking state machine
 		switch(S)
 		{
 			case BALANCE: 
-				if(G==TAKE)						{G=NONE; S=PICK_APPROACH; Ptarget = &Pobject1;}
-				if(G==RELEASE)					{G=NONE; S=DROP_APPROACH; Ptarget = &Pdrop;} break;
+				if(G==TAKE)						{G=NONE; S=PICK_APPROACH;}
+				if(G==RELEASE)					{G=NONE; S=DROP_APPROACH;} break;
 			case PICK_APPROACH:
-				if(reached)						{G=NONE; S=PICK; grasp=true;}
-				if(G==HALT)						{G=NONE; S=PICK_STAND; Ptarget = &Pfront;} break;
+				if(manip.is_at_target(eps_obj))	{G=NONE; S=PICK; grasp=true;}
+				if(G==HALT)						{G=NONE; S=PICK_STAND;} break;
 			case PICK:
-				if(manip.grasped(eps_obj))		{G=NONE; S=PICK_STAND; Ptarget = &Pfront;} 
-				if(G==HALT)						{G=NONE; S=PICK_STAND; Ptarget = &Pfront;} break;
+				if(Ptarget->grow < eps_obj)		{G=NONE; S=PICK_STAND; } 
+				if(G==HALT)						{G=NONE; S=PICK_STAND;} break;
 			case PICK_STAND:
-				if(stable)						{G=NONE; S=BALANCE;} break;
+				if(manip.is_at_rest(eps_rest))	{G=NONE; S=BALANCE;} break;
 			case DROP_APPROACH:
-				if(reached)						{G=NONE; S=DROP; grasp=false;} 
-				if(G==HALT)						{G=NONE; S=DROP_STAND; Ptarget = &Pfront;} break;
+				if(manip.is_at_target(eps_obj))	{G=NONE; S=DROP; grasp=false;} 
+				if(G==HALT)						{G=NONE; S=DROP_STAND;} break;
 			case DROP:
-				if(manip.released(eps_obj))		{G=NONE; S=DROP_STAND; Ptarget = &Pfront;}
-				if(G==HALT)						{G=NONE; S=DROP_STAND; Ptarget = &Pfront;} break;
+				if(Ptarget->grow > 1-eps_obj)	{G=NONE; S=DROP_STAND;}
+				if(G==HALT)						{G=NONE; S=DROP_STAND;} break;
 			case DROP_STAND:
-				if(stable)						{G=NONE; S=BALANCE;} break;
+				if(manip.is_at_rest(eps_rest))	{G=NONE; S=BALANCE;} break;
 		}
+
+		// define grasping behavior
+		Ptarget->grow += ((grasp ? 0 : 1) - Ptarget->grow) * 1 * wrapper.dt;
+
+		// define hand ideal positions
+		VectorXd ideal(14);
+		if(grasp)
+			ideal = Ptarget->get_hand_ideal();
+		else
+			ideal = Pfront.get_hand_ideal();
+		manip.set_ideal_point(ideal);
+
+		// define next hand target positions
+		VectorXd target(14);
+		if(S==PICK_APPROACH || S==PICK)
+			target = Ptarget->get_hand();
+		else if(S==DROP_APPROACH || S==DROP)
+			target = Ptarget->get_hand_moved(Pdrop);
+		else
+			target = ideal;
+		manip.set_target_point(target);
 
 		// check feasibility of the object, call collision right after the IK
 		// after this point, points.model will be updated with ref_pos in the IK function, not the actual sens_pos
-		points.load_tasks(des_com, des_lf, des_rf, Ptarget->get_hand(true), Ptarget->get_hand(false));
+		points.load_tasks(des_com, des_lf, des_rf, target);
 		VectorXd copy = joints.Ik_pos0;
 		IK.solve(points, copy, joints.freeze);
 		bool feasibility = SW==BALANCE && (IK.return_hand_error()< 0.17) && !collision.check(points);
-		
+		manip.update(feasibility, wrapper.dt, Ptarget, grasp);
+
 		if(S==PICK_APPROACH || S==DROP_APPROACH)
 			if((IK.return_hand_error()<0.13) && !collision.check(points) && SW!=BALANCE)
 				GW = HALT;
 			else if(((IK.return_hand_error()>0.17) || collision.check(points)) && SW==BALANCE)
 				GW = GO;
 
-		//cout << S << "   " << G << "   |   " << SW << "   " << GW << "    |     " << IK.return_hand_error() << endl;
+		cout << S << "   " << G << "   |   " << SW << "   " << GW << "    |     " << 
+				IK.return_hand_error() << "   " << collision.check(points) << endl;
 
 		// walking state machine signals
 		double eps_CoM 	= 0.005; // if com reached destination
@@ -320,26 +359,32 @@ int main(int argc, char *argv[])
 		switch(SW)
 		{
 			case BALANCE: 
-				if(GW==GO && stable)	{GW=NONE; SW=WALK_START; com_adjustment = Vector3d(-0.015,0.025,0);} break;
+				if(GW==GO && manip.is_at_rest(eps_rest))	
+					{
+						GW=NONE; 
+						SW=WALK_START; 
+						com_adjustment = Vector3d(-0.015,0.025,0);
+					} break;
 			case WALK_START:
-				if(startOK)				{GW=NONE; SW=WALK; wrapper.rePID(true); com_adjustment = Vector3d(-0.015,0,0); walking.start=time;} break;
+				if(startOK)				
+					{
+						GW=NONE; 
+						SW=WALK; wrapper.rePID(true); 
+						com_adjustment = Vector3d(-0.015,0,0); 
+						walking.start=time;
+					} break;
 			case WALK:
-				if(stopOK && GW==HALT)	{GW=NONE; SW=BALANCE; wrapper.rePID(false); com_adjustment = zero_v3;} break;
+				if(stopOK && GW==HALT)	
+					{
+						GW=NONE; 
+						SW=BALANCE; wrapper.rePID(false); 
+						com_adjustment = zero_v3;
+					} break;
 		}
-
-		// hand dynamical systems
-		manip.set_target_point(Ptarget);
-		manip.update(feasibility, wrapper.dt, grasp);
 
 		// other Cartesian tasks
 		final_com_pos += (des_com.segment(0,3) + com_adjustment - final_com_pos) * 3 * wrapper.dt;
-		points.load_tasks(vectorbig(final_com_pos,zero_quat), des_lf, des_rf, manip.get_hand(true), manip.get_hand(false));
-		#ifdef HARDWARE
-			if(time>calib_time)
-				manip.compliance_control(points);
-		#else
-			manip.jacobian_transpose(points, joints);
-		#endif
+		points.load_tasks(vectorbig(final_com_pos,zero_quat), des_lf, des_rf, manip.get_hands());
 
 		// whole-body IK 
 		joints.ref_pos = joints.Ik_pos0;
@@ -351,7 +396,7 @@ int main(int argc, char *argv[])
 			if(navigate) 
 			{
 				// here DS_nav determines reference walking velocities
-				Vector3d x_dot = DS_nav.linear_DS(Ptarget->get_hand(true)*0.5+Ptarget->get_hand(false)*0.5);
+				Vector3d x_dot = DS_nav.linear_DS(target.segment(0,7)/2.0+target.segment(7,7)/2.0);
 				x_dot[0] *= x_dot[0]<0 ? 0.25 : 0.5;
 				x_dot[1] *= 0.5;
 				x_dot[2] *= 1.0;
@@ -367,6 +412,15 @@ int main(int argc, char *argv[])
 			// apply joint policies
 			walking.joint_tasks(time, wrapper.dt, points, joints);
 		}
+
+		// compliant arm control
+		double force = (1.0 - Ptarget->grow) * Ptarget->max_force;
+		#ifdef HARDWARE
+			if(time>calib_time)
+				manip.compliance_control(points, force);
+		#else
+			manip.jacobian_transpose(points, joints, force);
+		#endif
 
 		/////////////////////////////////////////////////////////////////////////////////////////////////////////////
 		// send final commands //////////////////////////////////////////////////////////////////////////

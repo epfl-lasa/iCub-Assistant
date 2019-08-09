@@ -1,6 +1,6 @@
 #include "Manipulation.h"
 
-
+using namespace std;
 
 Manipulation::Manipulation()
 {
@@ -31,13 +31,9 @@ Manipulation::Manipulation()
 	A_V(1,1) = -5;
 	A_V(2,2) = -5;
 	A = MatrixXd::Zero(3,3);
-	A(0,0) = -0.3;
-	A(1,1) = -0.3;
-	A(2,2) = -0.3;
-
-	// grasping properties
-	obj_width_dyn = 1;
-	force_amp = 0; 
+	A(0,0) = -0.3 * 3;
+	A(1,1) = -0.3 * 3;
+	A(2,2) = -0.3 * 3;
 
 	// ideal pos
 	xd[0] = zero_v3; qd[0] = zero_quat;
@@ -50,50 +46,39 @@ Manipulation::Manipulation()
 	xV[1] = zero_v3; qV[1] = zero_quat;
 }
 
-void Manipulation::set_target_point(Object *object)
+void Manipulation::set_target_point(VectorXd hands)
 {
-	VectorXd lh = object->get_hand(true);
-	VectorXd rh = object->get_hand(false);
+	VectorXd lh = hands.segment(0,7);
+	VectorXd rh = hands.segment(7,7);
 
 	// multiarm position ds initiations
 	xO[0] = lh.segment(0,3);
 	xO[1] = rh.segment(0,3);
-
-	// grasping adjustment
-	Vector3d left2right = (xO[1]-xO[0]).normalized();
-	xO[0] += left2right * object->expansion * (1-obj_width_dyn);
-	xO[1] -= left2right * object->expansion * (1-obj_width_dyn);
 	
 	// multiarm orientation ds initiations
 	qO[0] = lh.segment(3,4);
 	qO[1] = rh.segment(3,4);
-
-	// grasping force
-	force_amp = object->max_force;
 }
 
-void Manipulation::set_start_point(Object *object)
+void Manipulation::set_start_point()
 {
-	VectorXd lh = object->get_hand(true);
-	VectorXd rh = object->get_hand(false);
-
 	// multiarm position ds initiations
-	xR[0] = lh.segment(0,3);
-	xV[0] = xR[0];
-	xR[1] = rh.segment(0,3);
-	xV[1] = xR[1];
+	xR[0] = xd[0];
+	xV[0] = xd[0];
+	xR[1] = xd[1];
+	xV[1] = xd[1];
 	
 	// multiarm orientation ds initiations
-	qR[0] = lh.segment(3,4);
-	qV[0] = qR[0];
-	qR[1] = rh.segment(3,4);
-	qV[1] = qR[1];
+	qR[0] = qd[0];
+	qV[0] = qd[0];
+	qR[1] = qd[1];
+	qV[1] = qd[1];
 }
 
-void Manipulation::set_ideal_point(Object *object)
+void Manipulation::set_ideal_point(VectorXd hands)
 {
-	VectorXd lh = object->get_hand(true);
-	VectorXd rh = object->get_hand(false);
+	VectorXd lh = hands.segment(0,7);
+	VectorXd rh = hands.segment(7,7);
 
 	// multiarm position ds initiations
 	xd[0] = lh.segment(0,3);
@@ -138,9 +123,8 @@ void Manipulation::secondary_filtering(Contact_Manager &points, double dt)
 	force_rh += (reading_rh - avg_rh - force_rh) * 1.0 * dt;
 }
 
-void Manipulation::compliance_control(Contact_Manager &points)
+void Manipulation::compliance_control(Contact_Manager &points, double force)
 {
-	double force = (1.0 - obj_width_dyn) * force_amp;
 	// calculate force directions
 	Vector3d mid = points[CN_RH].ref_p.pos.segment(0,3)*0.5 + points[CN_LH].ref_p.pos.segment(0,3)*0.5;
 	Vector3d hold_force_l = (mid - points[CN_LH].ref_p.pos.segment(0,3)).normalized() * force;
@@ -151,9 +135,8 @@ void Manipulation::compliance_control(Contact_Manager &points)
 	points[CN_RH].ref_p.pos.segment(0,3) += truncate_command(((force_rh).segment(0,3)+hold_force_r) * 0.1/30.0, 0.2, -0.2);
 }
 
-void Manipulation::jacobian_transpose(Contact_Manager &points, Joints &joints)
+void Manipulation::jacobian_transpose(Contact_Manager &points, Joints &joints, double force)
 {
-	double force = (1.0 - obj_width_dyn) * force_amp;
 	points[CN_LH].T.K = -Vector3d(30, 1, 1);
 	points[CN_LH].R.K = -Vector3d(10, 0.3, 1);
 	points[CN_RH].T.K = -Vector3d(30, 1, 1);
@@ -166,7 +149,7 @@ void Manipulation::jacobian_transpose(Contact_Manager &points, Joints &joints)
 	joints.ref_tau.segment(24,14) = h.segment(24,14);
 }
 
-void Manipulation::update(bool reachable, double dt, bool grasp)
+void Manipulation::update(bool reachable, double dt, Object * box, bool grasp)
 {
 	tau = reachable;
 	dtau = 0;
@@ -185,7 +168,6 @@ void Manipulation::update(bool reachable, double dt, bool grasp)
 		xV[i] += dxV * dt;
 		Vector3d ATX = A * (xR[i] - xd[i] - tau * (xV[i] - xd[i])) + dtau * (xV[i] - xd[i]);
 		Vector3d dxR  = tau * dxV * 0 + ATX;
-		xR[i] += dxR * dt;
 
 		// multiarm orientation DS
 		VectorXd dqO = zero_v3;
@@ -194,25 +176,87 @@ void Manipulation::update(bool reachable, double dt, bool grasp)
 		qV[i] = quat_mul(quat_exp(0.5 * quat_deriv(dqV * dt)), qV[i]);
 		Vector3d ATQ = A_Q * (quat_diff(qR[i], qd[i]) - tau * quat_diff(qV[i], qd[i])) + dtau * quat_diff(qV[i], qd[i]);
 		Vector3d dqR  = tau * dqV * 0 + ATQ;
+
+		// obstacle avoidance
+		if(!grasp && box->enable_avoidance)
+			dxR = modulate(dxR, xR[i], box);
+
+		cout << dxR.transpose() << endl;
+
+		// now integrate
+		xR[i] += dxR * dt;
 		qR[i] = quat_mul(quat_exp(0.5 * quat_deriv(dqR * dt)), qR[i]);
 	}
-
-	// grasping behavior
-	obj_width_dyn += ((grasp ? 0 : 1) - obj_width_dyn) * 1 * dt;
 }
 
-VectorXd Manipulation::get_hand(bool left)
+VectorXd Manipulation::get_hands()
 {
-	int i = left ? 0 : 1;
-	return vectorbig(xR[i],qR[i]);
+	VectorXd lh = vectorbig(xR[0],qR[0]);
+	VectorXd rh = vectorbig(xR[1],qR[1]);
+	return vectorbig(lh, rh);
 }
 
-bool Manipulation::grasped(double eps_obj)
+bool Manipulation::is_at_target(double eps_obj)
 {
-	return obj_width_dyn < eps_obj;
+	return (xR[0]-xO[0]).norm() <= eps_obj && (xR[1]-xO[1]).norm() <= eps_obj;
 }
 
-bool Manipulation::released(double eps_obj)
+bool Manipulation::is_at_rest(double eps_obj)
 {
-	return obj_width_dyn > 1 - eps_obj;
+	return (xR[0]-xd[0]).norm() <= eps_obj && (xR[1]-xd[1]).norm() <= eps_obj;
+}
+
+Vector3d Manipulation::modulate(Vector3d dx, Vector3d xR, Object * box)
+{
+	// translate and rotate p in the frame of the object
+	Vector3d p = quat2dc(box->sens_pos.segment(3,4)).inverse() * (xR - box->sens_pos.segment(0,3));
+	Vector3d v = quat2dc(box->sens_pos.segment(3,4)).inverse() * dx;
+	double margin = box->max_expansion;
+	Vector3d dim = box->dim / 2.0 + Vector3d(1,1,1) * margin*0;
+	double u = 4;
+	
+
+	// calculate the closest point q to p
+	Vector3d q = p;
+	for(int i=0; i<20; i++)
+	{
+		Vector4d F;
+		MatrixXd J(4,3);
+		F[0] = pow(q[0]/dim[0],2*u) + pow(q[1]/dim[1],2*u) + pow(q[2]/dim[2],2*u) - 1; 
+		F[1] = (2*u*pow(q[2]/dim[2],2*u - 1)*(p[1] - q[1]))/dim[2] - (2*u*pow(q[1]/dim[1],2*u - 1)*(p[2] - q[2]))/dim[1]; 
+		F[2] = (2*u*pow(q[0]/dim[0],2*u - 1)*(p[2] - q[2]))/dim[0] - (2*u*pow(q[2]/dim[2],2*u - 1)*(p[0] - q[0]))/dim[2]; 
+		F[3] = (2*u*pow(q[1]/dim[1],2*u - 1)*(p[0] - q[0]))/dim[1] - (2*u*pow(q[0]/dim[0],2*u - 1)*(p[1] - q[1]))/dim[0]; 
+		J(0, 0) = (2*u*pow(q[0]/dim[0],2*u))/q[0]; 
+		J(0, 1) = (2*u*pow(q[1]/dim[1],2*u))/q[1]; 
+		J(0, 2) = (2*u*pow(q[2]/dim[2],2*u))/q[2]; 
+		J(1, 0) = 0; 
+		J(1, 1) = - (2*u*pow(q[2]/dim[2],2*u))/q[2] - (2*u*(2*u - 1)*pow(q[1]/dim[1],2*u - 2)*(p[2] - q[2]))/pow(dim[1],2.0); 
+		J(1, 2) = (2*u*pow(q[1]/dim[1],2*u))/q[1] + (2*u*(2*u - 1)*pow(q[2]/dim[2],2*u - 2)*(p[1] - q[1]))/pow(dim[2],2.0); 
+		J(2, 0) = (2*u*pow(q[2]/dim[2],2*u))/q[2] + (2*u*(2*u - 1)*pow(q[0]/dim[0],2*u - 2)*(p[2] - q[2]))/pow(dim[0],2.0); 
+		J(2, 1) = 0; 
+		J(2, 2) = - (2*u*pow(q[0]/dim[0],2*u))/q[0] - (2*u*(2*u - 1)*pow(q[2]/dim[2],2*u - 2)*(p[0] - q[0]))/pow(dim[2],2.0); 
+		J(3, 0) = - (2*u*pow(q[1]/dim[1],2*u))/q[1] - (2*u*(2*u - 1)*pow(q[0]/dim[0],2*u - 2)*(p[1] - q[1]))/pow(dim[0],2.0); 
+		J(3, 1) = (2*u*pow(q[0]/dim[0],2*u))/q[0] + (2*u*(2*u - 1)*pow(q[1]/dim[1],2*u - 2)*(p[0] - q[0]))/pow(dim[1],2.0); 
+		J(3, 2) = 0; 
+		q += J.householderQr().solve(-F);
+	}
+	
+	// calculate the distance
+	double distance = (p-q).norm();
+	if (pow(p[0]/dim[0],2*u) + pow(p[1]/dim[1],2*u) + pow(p[2]/dim[2],2*u) - 1 < 0)
+		distance = 0;
+
+	// determine mixture coefficient
+	double alpha = max(1.0 - distance/margin/2.0, 0.0);
+
+	// calculate the final velocity with a repellant force
+	v = (1-alpha) * v + (p-q).normalized() * alpha * v.norm();
+
+	if(isnan(v[0]) || isnan(v[1]) || isnan(v[2]))
+	{
+		cout << "Warning: obstacle avoidance nan error!" << endl;
+		return dx;
+	}
+	else
+		return quat2dc(box->sens_pos.segment(3,4)) * v;	
 }

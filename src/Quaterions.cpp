@@ -131,7 +131,7 @@ void quat2dc(double ie1,
     dircos[2][2] = 1.-(2.*(e11+e22));
 }
 
-MatrixXd quat2dc(VectorXd st)
+MatrixXd quat2dc(Vector4d st)
 {
 	double dc_cp[3][3];
 	quat2dc(st[0],st[1],st[2],st[3],dc_cp);
@@ -147,13 +147,13 @@ Vector3d dc2ang(MatrixXd dc)
 	return stang;
 }
 
-Vector3d quat2ang(VectorXd st)
+Vector3d quat2ang(Vector4d st)
 {
 	MatrixXd DC = quat2dc(st);
 	return dc2ang(DC);
 }
 
-VectorXd ang2quat(Vector3d stang)
+Vector4d ang2quat(Vector3d stang)
 {
 	MatrixXd DC = ang2dc(stang);
 	return dc2quat(DC);
@@ -166,9 +166,9 @@ MatrixXd ang2dc(Vector3d stang)
 	return matrix3_convert(dc_cp);
 }
 
-VectorXd dc2quat(MatrixXd dc)
+Vector4d dc2quat(MatrixXd dc)
 {
-	VectorXd st(4);
+	Vector4d st;
 	double dc_cp[3][3];
 	matrix3_convert(dc,dc_cp);
 	dc2quat(dc_cp,&st[0],&st[1],&st[2],&st[3]);
@@ -213,7 +213,7 @@ Vector3d skew_symmetric_inv(MatrixXd &in)
 	return res;
 }
 
-MatrixXd make_cross_lh(VectorXd a)
+MatrixXd make_cross_lh(Vector4d a)
 {
 	// would be P(a) * q = a x q
 	MatrixXd P(4,4);
@@ -236,36 +236,36 @@ MatrixXd make_cross_lh(VectorXd a)
 	return P;
 }
 
-VectorXd quat_cross(VectorXd a, VectorXd b)
+Vector4d quat_cross(Vector4d a, Vector4d b)
 {
 	return make_cross_lh(a)*b;
 }
 
-VectorXd quat_cross(VectorXd a, VectorXd b, VectorXd c)
+Vector4d quat_cross(Vector4d a, Vector4d b, Vector4d c)
 {
 	return make_cross_lh(make_cross_lh(a)*b)*c;
 }
 
-VectorXd quat_normalize(VectorXd in)
+Vector4d quat_normalize(Vector4d in)
 {
 	return in / quat_norm(in);
 }
 
-VectorXd quat_inverse(VectorXd in)
+Vector4d quat_inverse(Vector4d in)
 {
 	VectorXd out = in;
 	for(int i=0;i<3;i++) out[i] *= -1;
 	return out;
 }
 
-double quat_dot(VectorXd a, VectorXd b)
+double quat_dot(Vector4d a, Vector4d b)
 {
 	double sum = a[3]*b[3];
 	for(int i=0;i<3;i++) sum -= a[i]*b[i];
 	return sum;
 }
 
-VectorXd quat_mul(VectorXd a, VectorXd b)
+Vector4d quat_mul(Vector4d a, Vector4d b)
 {
 	VectorXd res(4);
 	res[0] =  a[1]*b[2] - a[2]*b[1] + a[0]*b[3] + a[3]*b[0];
@@ -277,27 +277,27 @@ VectorXd quat_mul(VectorXd a, VectorXd b)
 	return res;
 }
 
-VectorXd quat_add(VectorXd a, VectorXd b)
+Vector4d quat_add(Vector4d a, Vector4d b)
 {
 	return quat_mul(a,b);
 }
 
-VectorXd quat_sub(VectorXd a, VectorXd b)
+Vector4d quat_sub(Vector4d a, Vector4d b)
 {
 	return quat_mul(a, quat_inverse(b));
 }
 
-double quat_cos(VectorXd a, VectorXd b)
+double quat_cos(Vector4d a, Vector4d b)
 {
 	return quat_dot(a,b)/quat_norm(a)/quat_norm(b);
 }
 
-double quat_norm(VectorXd in)
+double quat_norm(Vector4d in)
 {
 	return sqrt(quat_dot(in,quat_inverse(in)));
 }
 
-double quat_get_theta(VectorXd in)
+double quat_get_theta(Vector4d in)
 {
 	in /= quat_norm(in);
 	double c = in[3];
@@ -306,7 +306,7 @@ double quat_get_theta(VectorXd in)
 	return atan2(s,c)*2;
 }
 
-VectorXd quat_scale(VectorXd in, double d)
+Vector4d quat_scale(Vector4d in, double d)
 {
 	in /= quat_norm(in);
 	double c = in[3];
@@ -340,9 +340,9 @@ double SinXoverX1(double x)	  //mySin function
 	return sum;
 }
 
-VectorXd quat_exp(VectorXd in)
+Vector4d quat_exp(Vector4d in)
 {
-	VectorXd res(4);
+	Vector4d res;
 	double amp = exp(in[3]);
 	in[3] = 0;
 	double theta = quat_norm(in);
@@ -353,9 +353,9 @@ VectorXd quat_exp(VectorXd in)
 	return res;
 }
 
-VectorXd quat_log(VectorXd in)
+Vector4d quat_log(Vector4d in)
 {
-	VectorXd res(4);
+	Vector4d res;
 	double amp = quat_norm(in);
 	in = in / amp;
 	double c = in[3];
@@ -383,27 +383,27 @@ VectorXd quat_log(VectorXd in)
 	return res;
 }
 
-VectorXd quat_pow(VectorXd in, double t)
+Vector4d quat_pow(Vector4d in, double t)
 {
-	VectorXd I(4);
+	Vector4d I;
 	I[0]=0;
 	I[1]=0;
 	I[2]=0;
 	I[3]=1;
 	if(t==0)
 		return I;
-	VectorXd l = quat_log(in);
+	Vector4d l = quat_log(in);
 	return quat_exp(l * t);
 }
 
-VectorXd quat_slerp(VectorXd q0, VectorXd q1, double t)
+Vector4d quat_slerp(Vector4d q0, Vector4d q1, double t)
 {
 	return quat_cross(quat_pow(quat_cross(q1, quat_inverse(q0)),t),q0);
 }
 
-VectorXd quat_deriv(Vector3d in)
+Vector4d quat_deriv(Vector3d in)
 {
-	VectorXd res(4);
+	Vector4d res;
 	res[0] = in[0];
 	res[1] = in[1];
 	res[2] = in[2];
@@ -411,7 +411,7 @@ VectorXd quat_deriv(Vector3d in)
 	return res;
 }
 
-VectorXd quat_diff(Vector4d a, Vector4d b)
+Vector3d quat_diff(Vector4d a, Vector4d b)
 {
 	return quat_log(quat_sub(a, b)).segment(0,3);
 }

@@ -168,7 +168,7 @@ void Contact_Manager::control(Contact_Name i, Geom_Point ref_pos)
 
 }
 
-void Contact_Manager::load_tasks(VectorXd com, VectorXd lf, VectorXd rf, VectorXd lh, VectorXd rh)
+void Contact_Manager::load_tasks(VectorXd com, VectorXd lf, VectorXd rf, VectorXd hands)
 {
 	EE[CN_CM].ref_p.pos = com;
 	EE[CN_CM].ref_p.pos = com;
@@ -178,8 +178,8 @@ void Contact_Manager::load_tasks(VectorXd com, VectorXd lf, VectorXd rf, VectorX
 	EE[CN_LF].ref_p.pos = lf;
 	EE[CN_RF].ref_p.pos = rf;
 
-	EE[CN_LH].ref_p.pos = lh;
-	EE[CN_RH].ref_p.pos = rh;
+	EE[CN_LH].ref_p.pos = hands.segment(0,7);
+	EE[CN_RH].ref_p.pos = hands.segment(7,7);
 }
 
 void Contact_Manager::task_costs()

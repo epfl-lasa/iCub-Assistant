@@ -9,40 +9,56 @@ public:
 	// mocap positions, orientations
 	VectorXd sens_pos;
 	VectorXd sens_vel;
+	VectorXd ideal_pos;
 
 	// the xyz dimensions, assuming a box shape
 	Vector3d dim;
 
 	// How distant the hands should be with respect to the object
-	double expansion;
+	double max_expansion;
+	double grow;
 	
 	// the direction (from object center) in which the left grasp should be made
-	Vector3d grasp_axis;
-	Vector4d grasp_rot;
+	Vector3d ideal_grasp_axis;
+	Vector3d opt_grasp_axis;
+	// most comfortable rotation around the axis
+	Vector4d ideal_grasp_rot;
+	Vector4d opt_grasp_rot;
+	// any offset on the surface of the grasp
+	Vector3d grasp_offset;
+	// any offset on the surface of the grasp
+	bool grasp_opposite;
 
 	// grasping behavior
 	double max_force;
 
-	// quaternion between two different grasp axis
-	Vector4d local_rot(Vector3d v1, Vector3d v2);
-
 	// whether the markers are attached on top. Otherwise they give the geometric center by default.
 	bool top_marker;
 
-	Object();
+	// enable obstacle avoidance
+	bool enable_avoidance;
+
+	// quaternion between two different grasp axis
+	Vector4d local_rot(Vector3d v1, Vector3d v2);
+
+	Object(VectorXd des_obj);
 	~Object() {};
 
 	// get the raw mocap data and process, if not valid stick to the previous positions
 	bool update_position(VectorXd P_B, VectorXd P_lf, VectorXd P_rf, VectorXd P_R, VectorXd P_obj);
 
 	// get the desired grasping points expanded
-	VectorXd get_hand(bool left);
+	VectorXd get_hand();
+
+	// get hand positions at a desired place
+	VectorXd get_hand_moved(VectorXd center);
+
+	// get hand positions in fron of the robot
+	VectorXd get_hand_ideal();
 
 	// optimal grasp
 	bool allow_search;
 	void optimize_grasp();
-	void enable_optimal_grasp();
-	void disable_optimal_grasp();
 };
 
 //! add two transformations together
