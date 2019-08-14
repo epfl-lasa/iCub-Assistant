@@ -6,6 +6,9 @@ class Object
 {
 public:
 
+	// name
+	string name;
+
 	// mocap positions, orientations
 	VectorXd sens_pos;
 	VectorXd sens_vel;
@@ -16,7 +19,10 @@ public:
 
 	// How distant the hands should be with respect to the object
 	double max_expansion;
+	// Dynamic shrinkage of the hands on the object
 	double grow;
+	// Determines how close we can get to the object when walking towards it
+	double proximity;
 	
 	// the direction (from object center) in which the left grasp should be made
 	Vector3d ideal_grasp_axis;
@@ -24,8 +30,11 @@ public:
 	// most comfortable rotation around the axis
 	Vector4d ideal_grasp_rot;
 	Vector4d opt_grasp_rot;
+	// most comfortable offset with respect to object center
+	Vector3d ideal_grasp_offset;
+	Vector3d opt_grasp_offset;
 	// any offset on the surface of the grasp
-	Vector3d grasp_offset;
+	Vector3d hand_offset;
 	// any offset on the surface of the grasp
 	bool grasp_opposite;
 
@@ -37,6 +46,8 @@ public:
 
 	// enable obstacle avoidance
 	bool enable_avoidance;
+	// smoothness of the ellipse: 1.0 means ellipse and inf means box
+	double curvature;
 
 	// quaternion between two different grasp axis
 	Vector4d local_rot(Vector3d v1, Vector3d v2);

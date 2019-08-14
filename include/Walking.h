@@ -3,6 +3,10 @@
 #include "Contacts.h"
 #include "Joints.h"
 #include "MedianFilter.h"
+#include "InverseKinematics.h"
+#include "Wrapper.h"
+
+enum walking_state {IDLE=0, WALK_START, WALK, WALK_STOP};
 
 class Walking
 {
@@ -14,21 +18,24 @@ public:
 	double fblx, fbrx, fbly, fbry;
 	double Tstep;
 	double tphase;
-	double phase;
+	double left_support;
 	double ref_vx, ref_vy, ref_w;
 	double force_lf, force_rf;
 	double al, ar;
 	double hip_gain_K;
-	double min_dt;
-	double start;
+	double start_time;
 	bool hardware;
+	walking_state state;
+	Vector3d com_adjustment;
+	double torso_cost;
 
-	void initialize(double minDT);
-	void update(double time, double dt, Contact_Manager &points);
-	void calculate_footstep_adjustments(double time, double dt, Contact_Manager &points, Joints &joints);
+	Walking();
+	~Walking() {};
+	void update(double time, double dt, bool demand, Contact_Manager &points, Joints &joints, Wrapper &wrapper);
+	void calculate_footstep_adjustments(double time, Contact_Manager &points, Joints &joints);
 	void apply_speed_limits();
 	void demand_speeds(Vector3d speeds);
-	void cartesian_tasks(double time, Contact_Manager &points);
+	void cartesian_tasks(double time, Contact_Manager &points, Joints &joints);
 	void joint_tasks(double time, double dt, Contact_Manager &points, Joints &joints);
 	bool early_phase(double time, double dt);
 };

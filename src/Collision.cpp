@@ -19,6 +19,7 @@ Collision::Collision()
 
 bool Collision::check(Contact_Manager &points)
 {
+	return false;
 	updateCollisionObj(colObjs, points.model, idx_map);
 	bool flag = false;
 	for(int i=0;i<idx_map.size();i++)

@@ -31,9 +31,9 @@ Manipulation::Manipulation()
 	A_V(1,1) = -5;
 	A_V(2,2) = -5;
 	A = MatrixXd::Zero(3,3);
-	A(0,0) = -0.3 * 3;
-	A(1,1) = -0.3 * 3;
-	A(2,2) = -0.3 * 3;
+	A(0,0) = -0.3 * 2;
+	A(1,1) = -0.3 * 2;
+	A(2,2) = -0.3 * 2;
 
 	// ideal pos
 	xd[0] = zero_v3; qd[0] = zero_quat;
@@ -181,8 +181,6 @@ void Manipulation::update(bool reachable, double dt, Object * box, bool grasp)
 		if(!grasp && box->enable_avoidance)
 			dxR = modulate(dxR, xR[i], box);
 
-		cout << dxR.transpose() << endl;
-
 		// now integrate
 		xR[i] += dxR * dt;
 		qR[i] = quat_mul(quat_exp(0.5 * quat_deriv(dqR * dt)), qR[i]);
@@ -212,51 +210,67 @@ Vector3d Manipulation::modulate(Vector3d dx, Vector3d xR, Object * box)
 	Vector3d p = quat2dc(box->sens_pos.segment(3,4)).inverse() * (xR - box->sens_pos.segment(0,3));
 	Vector3d v = quat2dc(box->sens_pos.segment(3,4)).inverse() * dx;
 	double margin = box->max_expansion;
-	Vector3d dim = box->dim / 2.0 + Vector3d(1,1,1) * margin*0;
-	double u = 4;
+	Vector3d dim = box->dim / 2.0 + Vector3d(1,1,1) * margin * 0;
+	double u = box->curvature;
 	
 
-	// calculate the closest point q to p
+	// approximate the object with an ellipse, calculate the closest point q on the ellipse to p
+	// q lies on the ellipse border defined in F[0], and the jacobian of F at q (called J) is parallel to p-q direction.
+	// Therefore, F[1] to F[3] implement J cross (p-q) = 0. In the following, we solve for q iteratively:
 	Vector3d q = p;
 	for(int i=0; i<20; i++)
 	{
 		Vector4d F;
 		MatrixXd J(4,3);
-		F[0] = pow(q[0]/dim[0],2*u) + pow(q[1]/dim[1],2*u) + pow(q[2]/dim[2],2*u) - 1; 
-		F[1] = (2*u*pow(q[2]/dim[2],2*u - 1)*(p[1] - q[1]))/dim[2] - (2*u*pow(q[1]/dim[1],2*u - 1)*(p[2] - q[2]))/dim[1]; 
-		F[2] = (2*u*pow(q[0]/dim[0],2*u - 1)*(p[2] - q[2]))/dim[0] - (2*u*pow(q[2]/dim[2],2*u - 1)*(p[0] - q[0]))/dim[2]; 
-		F[3] = (2*u*pow(q[1]/dim[1],2*u - 1)*(p[0] - q[0]))/dim[1] - (2*u*pow(q[0]/dim[0],2*u - 1)*(p[1] - q[1]))/dim[0]; 
-		J(0, 0) = (2*u*pow(q[0]/dim[0],2*u))/q[0]; 
-		J(0, 1) = (2*u*pow(q[1]/dim[1],2*u))/q[1]; 
-		J(0, 2) = (2*u*pow(q[2]/dim[2],2*u))/q[2]; 
+		F[0] = pow(q[0]/dim[0], 2*u) + pow(q[1]/dim[1], 2*u) + pow(q[2]/dim[2], 2*u) - 1; 
+		F[1] = (2*u*pow(q[2]/dim[2], 2*u-1)*(p[1]-q[1]))/dim[2] - (2*u*pow(q[1]/dim[1], 2*u-1)*(p[2]-q[2]))/dim[1]; 
+		F[2] = (2*u*pow(q[0]/dim[0], 2*u-1)*(p[2]-q[2]))/dim[0] - (2*u*pow(q[2]/dim[2], 2*u-1)*(p[0]-q[0]))/dim[2]; 
+		F[3] = (2*u*pow(q[1]/dim[1], 2*u-1)*(p[0]-q[0]))/dim[1] - (2*u*pow(q[0]/dim[0], 2*u-1)*(p[1]-q[1]))/dim[0]; 
+		J(0, 0) = (2*u*pow(q[0]/dim[0], 2*u-1))/dim[0]; 
+		J(0, 1) = (2*u*pow(q[1]/dim[1], 2*u-1))/dim[1]; 
+		J(0, 2) = (2*u*pow(q[2]/dim[2], 2*u-1))/dim[2]; 
 		J(1, 0) = 0; 
-		J(1, 1) = - (2*u*pow(q[2]/dim[2],2*u))/q[2] - (2*u*(2*u - 1)*pow(q[1]/dim[1],2*u - 2)*(p[2] - q[2]))/pow(dim[1],2.0); 
-		J(1, 2) = (2*u*pow(q[1]/dim[1],2*u))/q[1] + (2*u*(2*u - 1)*pow(q[2]/dim[2],2*u - 2)*(p[1] - q[1]))/pow(dim[2],2.0); 
-		J(2, 0) = (2*u*pow(q[2]/dim[2],2*u))/q[2] + (2*u*(2*u - 1)*pow(q[0]/dim[0],2*u - 2)*(p[2] - q[2]))/pow(dim[0],2.0); 
+		J(1, 1) = - (2*u*pow(q[2]/dim[2], 2*u-1))/dim[2] - (2*u*(2*u-1)*pow(q[1]/dim[1], 2*u-2)*(p[2]-q[2]))/pow(dim[1],2.0); 
+		J(1, 2) = (2*u*pow(q[1]/dim[1], 2*u-1))/dim[1] + (2*u*(2*u-1)*pow(q[2]/dim[2], 2*u-2)*(p[1]-q[1]))/pow(dim[2],2.0); 
+		J(2, 0) = (2*u*pow(q[2]/dim[2], 2*u-1))/dim[2] + (2*u*(2*u-1)*pow(q[0]/dim[0], 2*u-2)*(p[2]-q[2]))/pow(dim[0],2.0); 
 		J(2, 1) = 0; 
-		J(2, 2) = - (2*u*pow(q[0]/dim[0],2*u))/q[0] - (2*u*(2*u - 1)*pow(q[2]/dim[2],2*u - 2)*(p[0] - q[0]))/pow(dim[2],2.0); 
-		J(3, 0) = - (2*u*pow(q[1]/dim[1],2*u))/q[1] - (2*u*(2*u - 1)*pow(q[0]/dim[0],2*u - 2)*(p[1] - q[1]))/pow(dim[0],2.0); 
-		J(3, 1) = (2*u*pow(q[0]/dim[0],2*u))/q[0] + (2*u*(2*u - 1)*pow(q[1]/dim[1],2*u - 2)*(p[0] - q[0]))/pow(dim[1],2.0); 
+		J(2, 2) = - (2*u*pow(q[0]/dim[0], 2*u-1))/dim[0] - (2*u*(2*u-1)*pow(q[2]/dim[2], 2*u-2)*(p[0]-q[0]))/pow(dim[2],2.0); 
+		J(3, 0) = - (2*u*pow(q[1]/dim[1], 2*u-1))/dim[1] - (2*u*(2*u-1)*pow(q[0]/dim[0], 2*u-2)*(p[1]-q[1]))/pow(dim[0],2.0); 
+		J(3, 1) = (2*u*pow(q[0]/dim[0], 2*u-1))/dim[0] + (2*u*(2*u-1)*pow(q[1]/dim[1], 2*u-2)*(p[0]-q[0]))/pow(dim[1],2.0); 
 		J(3, 2) = 0; 
 		q += J.householderQr().solve(-F);
 	}
 	
-	// calculate the distance
+	// calculate the distance between p and q
 	double distance = (p-q).norm();
-	if (pow(p[0]/dim[0],2*u) + pow(p[1]/dim[1],2*u) + pow(p[2]/dim[2],2*u) - 1 < 0)
+	// if p was inside the ellipse
+	if (pow(p[0]/dim[0], 2*u) + pow(p[1]/dim[1], 2*u) + pow(p[2]/dim[2], 2*u) - 1 < 0)
 		distance = 0;
 
 	// determine mixture coefficient
 	double alpha = max(1.0 - distance/margin/2.0, 0.0);
 
-	// calculate the final velocity with a repellant force
-	v = (1-alpha) * v + (p-q).normalized() * alpha * v.norm();
+	// determine repellant force
+	Vector3d rep;
+	if(distance == 0)
+	{
+		rep[0] = (2*u*pow(q[0]/dim[0], 2*u-1))/dim[0];
+		rep[1] = (2*u*pow(q[1]/dim[1], 2*u-1))/dim[1];
+		rep[2] = (2*u*pow(q[2]/dim[2], 2*u-1))/dim[2];
+	}
+	else
+		rep = p-q;
+	rep = rep.normalized() * v.norm();
 
+	// calculate the final velocity with a repellant force
+	v = (1-alpha) * v + rep * alpha;
+	v = quat2dc(box->sens_pos.segment(3,4)) * v;
+	
 	if(isnan(v[0]) || isnan(v[1]) || isnan(v[2]))
 	{
 		cout << "Warning: obstacle avoidance nan error!" << endl;
 		return dx;
 	}
 	else
-		return quat2dc(box->sens_pos.segment(3,4)) * v;	
+		return v;	
 }

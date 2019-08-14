@@ -16,7 +16,7 @@
 #include <iostream>
 #include <string>
 
-#define minTimeStep 0.01
+#define minTimeStep 0.001
 
 using namespace Eigen;
 using namespace std;

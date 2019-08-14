@@ -1,33 +1,40 @@
 #include "Object.h"
 
+# define left_side Vector3d(0,1,0)
+
 Object::Object(VectorXd des_obj)
 {
-	sens_pos = des_obj;
+	name = "not_assigned";
+	sens_pos = zero_v7;
 	sens_vel = vectorbig(zero_v3, zero_v3);
 	ideal_pos = des_obj;
 	dim = Vector3d(1,1,1) * 0.2;
 	max_expansion = 0.1;
 	grow = 1;
+	proximity = 0.1;
 	// default object pos is in front of the robot, default object is a box
-	ideal_grasp_axis = Vector3d(0, 1, 0);
+	ideal_grasp_axis = left_side;
 	opt_grasp_axis = ideal_grasp_axis;
 	ideal_grasp_rot = ang2quat(Vector3d(0,-M_PI/2,0));
 	opt_grasp_rot = ideal_grasp_rot;
-	grasp_offset = zero_v3;
+	ideal_grasp_offset = zero_v3;
+	opt_grasp_offset = zero_v3;
+	hand_offset = zero_v3;
 	grasp_opposite = true;
 	top_marker = false;
 	max_force = 20;
 	allow_search = true;
 	enable_avoidance = true;
+	curvature = 4;
 }
 
 VectorXd Object::get_hand()
 {
 	VectorXd out = VectorXd::Zero(14);
-	Vector3d pos = sens_pos.segment(0,3);
+	Vector3d pos = sens_pos.segment(0,3) + quat2dc(sens_pos.segment(3,4)) * opt_grasp_offset;
 	Vector4d rot = sens_pos.segment(3,4);
 
-	// the grasp_offset vector is defined in the left hand frame: fingers: +x, back of the hand: +z
+	// the hand_offset vector is defined in the left hand frame: fingers: +x, back of the hand: +z
 	// this transforms the hand frame to the default world frame when the robot is upright
 	Vector4d hand_transform = quat_mul(ang2quat(Vector3d(-M_PI/2.0,0,0)), ang2quat(Vector3d(0,0,M_PI/2.0)));
 
@@ -35,15 +42,15 @@ VectorXd Object::get_hand()
 	Vector4d palm_rot  = opt_grasp_rot;	
 	direction *= abs(double(direction.adjoint() * dim))/2 + max_expansion * grow;
 	
-	Vector4d rot_lh = quat_mul(local_rot(Vector3d(0,1,0), direction), palm_rot);
+	Vector4d rot_lh = quat_mul(local_rot(left_side, direction), palm_rot);
 	out.segment(3,4) = quat_mul(rot, rot_lh);
-	out.segment(0,3) = pos + quat2dc(rot) * direction + quat2dc(out.segment(3,4)) * quat2dc(hand_transform) * grasp_offset;
+	out.segment(0,3) = pos + quat2dc(rot) * direction + quat2dc(out.segment(3,4)) * quat2dc(hand_transform) * hand_offset;
 	
 	direction *= grasp_opposite ? -1.0 : 1.0;
 	
-	Vector4d rot_rh = quat_mul(local_rot(Vector3d(0,-1,0), direction), palm_rot);
+	Vector4d rot_rh = quat_mul(local_rot(-left_side, direction), palm_rot);
 	out.segment(10,4) = quat_mul(rot, rot_rh);
-	out.segment(7,3) = pos + quat2dc(rot) * direction - quat2dc(out.segment(3,4)) * quat2dc(hand_transform) * grasp_offset;
+	out.segment(7,3) = pos + quat2dc(rot) * direction - quat2dc(out.segment(3,4)) * quat2dc(hand_transform) * hand_offset;
 
 	return out;
 }
@@ -52,12 +59,12 @@ VectorXd Object::get_hand_moved(VectorXd center)
 {
 	// calculate actual hand positions on the object
 	VectorXd out = get_hand();
-	Vector3d pos_actual = out.segment(0,3)/2.0 + out.segment(7,3)/2.0;
+	Vector3d pos_actual = sens_pos.segment(0,3) + quat2dc(sens_pos.segment(3,4)) * opt_grasp_offset;
 	Vector4d rot_actual = out.segment(3,4);
 
 	// calculate ideal hand positions at the target point
 	Vector3d pos_ideal = center.segment(0,3);
-	Vector4d rot_ideal = quat_mul(local_rot(Vector3d(0,1,0), ideal_grasp_axis), ideal_grasp_rot);
+	Vector4d rot_ideal = quat_mul(local_rot(left_side, ideal_grasp_axis), ideal_grasp_rot);
 	rot_ideal = quat_mul(center.segment(3,4), rot_ideal);
 
 	// now move hands to the ideal place
@@ -112,12 +119,6 @@ VectorXd trans7_scale(VectorXd a, double b)
 
 bool Object::update_position(VectorXd P_B, VectorXd P_lf, VectorXd P_rf, VectorXd P_R, VectorXd P_obj)
 {
-	if(P_R.isZero(0) || P_obj.isZero(0)) // some mocap port is not working ...
-	{
-		cout << " Some mocap data port is not set up properly" << endl;
-		return false;
-	}
-
 	// This function brings the Object to a frame attached to the mid-foot point, heading forward
 	// model's base frame: P_B
 	// model's feet frame, P_lf, P_rf
@@ -162,7 +163,9 @@ Vector4d Object::local_rot(Vector3d v1, Vector3d v2)
 
 void Object::optimize_grasp()
 {
-	// decide which side to grasp
+	// this function searches over different sides of the object to find the closest grasping point
+	// for now, orientations and postiions are decoupled
+	// first decide which side to grasp
 	MatrixXd map = MatrixXd(6,3);
 	map <<  1, 0, 0,
 			-1, 0, 0,
@@ -171,10 +174,10 @@ void Object::optimize_grasp()
 			0, 0, 1,
 			0, 0, -1;
 	double min_diff = 1e6;
-	Vector3d ax_diff = Vector3d(0,1,0);
+	Vector3d ax_diff = left_side;
 	Vector4d rot_diff = zero_quat;
 	// the desired left hand rotation when the object is in front of the robot
-	Vector4d rot_desired = quat_mul(local_rot(Vector3d(0,1,0), ideal_grasp_axis), ideal_grasp_rot);
+	Vector4d rot_desired = quat_mul(local_rot(left_side, ideal_grasp_axis), ideal_grasp_rot);
 	for(int i=0;i<6;i++)
 	{
 		// search over grasping sides
@@ -185,8 +188,8 @@ void Object::optimize_grasp()
 		for(int j=0;j<4;j++)
 		{
 			// search over different grasp orientations around the grasp axis
-			Vector4d palm_rot = allow_search ? ang2quat(Vector3d(0,1,0) * j * M_PI/2.0) : ideal_grasp_rot;
-			Vector4d rot = quat_mul(local_rot(Vector3d(0,1,0), ax), palm_rot);
+			Vector4d palm_rot = allow_search ? ang2quat(left_side * j * M_PI/2.0) : ideal_grasp_rot;
+			Vector4d rot = quat_mul(local_rot(left_side, ax), palm_rot);
 			rot = quat_mul(sens_pos.segment(3,4), rot);
 			double error = quat_diff(rot, rot_desired).norm();
 			if(error<min_diff)
@@ -199,4 +202,41 @@ void Object::optimize_grasp()
 	}
 	opt_grasp_axis = ax_diff;
 	opt_grasp_rot = rot_diff;
+
+	// now search whether we should grasp corners of the object
+	int index1=0, index2=1;
+	if(abs(opt_grasp_axis[0]) > 0.5)
+	{
+		index1 = 1; 
+		index2 = 2;
+	}
+	else if(abs(opt_grasp_axis[1]) > 0.5)
+	{
+		index1 = 0; 
+		index2 = 2;
+	}
+	else if(abs(opt_grasp_axis[2]) > 0.5)
+	{
+		index1 = 0; 
+		index2 = 1;
+	}
+
+	min_diff = 1e6;
+	Vector3d offset_diff = ideal_grasp_offset;
+	Vector3d mid_shoulder(0,0,0.8);
+	for(int i=-1;i<2;i++)
+		for(int j=-1;j<2;j++)
+		{
+			Vector3d offset = zero_v3;
+			offset[index1] = double(i) * max(dim[index1] / 2.0 - 0.1, 0.0);
+			offset[index2] = double(j) * max(dim[index2] / 2.0 - 0.1, 0.0);
+			Vector3d grasp_point = sens_pos.segment(0,3) + quat2dc(sens_pos.segment(3,4)) * offset;
+			double error = (grasp_point - mid_shoulder).norm();
+			if(error<min_diff)
+			{
+				min_diff = error;
+				offset_diff = offset;
+			}
+		}
+	opt_grasp_offset = offset_diff;
 }

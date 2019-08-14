@@ -7,7 +7,7 @@ p = sym('p',[3,1],'real');
 q = sym('q',[3,1],'real');
 dim = sym('dim',[3,1],'real');
 
-f = sum((q./dim).^(2*u)); 
+f = sum((q./dim).^(2*u)) - 1; 
 n = [diff(f,'q1'); diff(f,'q2'); diff(f,'q3')];
 F = [f; cross(p-q, n)];
 

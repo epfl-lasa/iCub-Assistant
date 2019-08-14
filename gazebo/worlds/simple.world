@@ -120,6 +120,12 @@
       <static>0</static>
     </include>
 	<include>
+      <uri>../objects/BoxBig</uri>
+      <name>BoxBig</name>
+      <pose frame=''>0.3 1 0.3 0 -0 0</pose>
+      <static>0</static>
+    </include>
+	<include>
       <uri>../objects/Broom</uri>
       <name>Broom</name>
       <pose frame=''>0.3 0.5 0.6 0 -0 0</pose>
