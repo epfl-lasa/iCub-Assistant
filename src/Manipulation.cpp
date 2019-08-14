@@ -31,9 +31,9 @@ Manipulation::Manipulation()
 	A_V(1,1) = -5;
 	A_V(2,2) = -5;
 	A = MatrixXd::Zero(3,3);
-	A(0,0) = -0.3 * 2;
-	A(1,1) = -0.3 * 2;
-	A(2,2) = -0.3 * 2;
+	A(0,0) = -1;
+	A(1,1) = -1;
+	A(2,2) = -1;
 
 	// ideal pos
 	xd[0] = zero_v3; qd[0] = zero_quat;
@@ -265,7 +265,7 @@ Vector3d Manipulation::modulate(Vector3d dx, Vector3d xR, Object * box)
 	// calculate the final velocity with a repellant force
 	v = (1-alpha) * v + rep * alpha;
 	v = quat2dc(box->sens_pos.segment(3,4)) * v;
-	
+
 	if(isnan(v[0]) || isnan(v[1]) || isnan(v[2]))
 	{
 		cout << "Warning: obstacle avoidance nan error!" << endl;

@@ -134,7 +134,7 @@ int main(int argc, char *argv[])
 	Broom.max_force = 0;
 	Broom.hand_offset = Vector3d(0,0.1,0);
 	Broom.curvature = 2.0;
-	Broom.proximity = 0.02;
+	Broom.proximity = 0.03;
 
 	Object Cart(des_obj);
 	Cart.name = "Cart";
@@ -146,7 +146,7 @@ int main(int argc, char *argv[])
 	Cart.grasp_opposite = false;
 	Cart.ideal_grasp_axis = Vector3d(0,0,1);
 	Cart.curvature = 2.0;
-	Cart.proximity = 0.02;
+	Cart.proximity = 0.03;
 
 	// logger
 	std::ofstream OutRecord;
@@ -301,7 +301,8 @@ int main(int argc, char *argv[])
 		}
 
 		// state machine
-		double eps_obj	= Ptarget->proximity/2.0; // if hands reached the destination
+		double eps1	= 0.5 * Ptarget->max_expansion; // if hands reached the point close to the object
+		double eps2	= 0.5 * Ptarget->proximity; // if hands reached the point close to the object
 		double eps_rest	= 0.02; // if hands reached the default position
 		switch(task)
 		{
@@ -309,11 +310,11 @@ int main(int argc, char *argv[])
 				if(signal==TAKE)				{signal=NONE; task=PICK_APPROACH;}
 				if(signal==HALT)				{signal=NONE; task=EMPTY;} break;
 			case PICK_APPROACH:
-				if(manip.is_at_target(eps_obj))	{signal=NONE; task=PICK;}
+				if(manip.is_at_target(eps1))	{signal=NONE; task=PICK;}
 				if(signal==HALT)				{signal=NONE; task=DROP_STAND;} break;
 			case PICK:
-				if(Ptarget->grow < eps_obj &&
-				manip.is_at_target(eps_obj))	{signal=NONE; task=PICK_STAND; } 
+				if(Ptarget->grow < 0.1 &&
+				manip.is_at_target(eps2))		{signal=NONE; task=PICK_STAND; } 
 				if(signal==HALT)				{signal=NONE; task=DROP_STAND;} break;
 			case PICK_STAND:
 				if(manip.is_at_rest(eps_rest))	{signal=NONE; task=HOLD;} break;
@@ -321,11 +322,10 @@ int main(int argc, char *argv[])
 				if(signal==RELEASE)				{signal=NONE; task=DROP_APPROACH;}
 				if(signal==HALT)				{signal=NONE; task=HOLD;} break;
 			case DROP_APPROACH:
-				if(manip.is_at_target(eps_obj))	{signal=NONE; task=DROP;} 
+				if(manip.is_at_target(eps1))	{signal=NONE; task=DROP;} 
 				if(signal==HALT)				{signal=NONE; task=PICK_STAND;} break;
 			case DROP:
-				if(Ptarget->grow > 1-eps_obj && 
-				manip.is_at_rest(eps_rest))		{signal=NONE; task=DROP_STAND;}
+				if(Ptarget->grow > 0.9)			{signal=NONE; task=DROP_STAND;}
 				if(signal==HALT)				{signal=NONE; task=DROP_STAND;} break;
 			case DROP_STAND:
 				if(manip.is_at_rest(eps_rest))	{signal=NONE; task=EMPTY;} break;
@@ -352,8 +352,6 @@ int main(int argc, char *argv[])
 			else if(task==DROP_APPROACH || task==DROP)
 				target = Ptarget->get_hand_moved(Pdrop);
 		manip.set_target_point(target);
-
-		cout << target.segment(0,3).transpose() << "          " << manip.xR[0].transpose() << endl;
 
 		// check feasibility of the object, call collision right after the IK
 		// after this point, points.model will be updated with ref_pos in the IK function, not the actual sens_pos
