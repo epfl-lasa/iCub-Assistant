@@ -127,7 +127,7 @@ int main(int argc, char *argv[])
 		BoxBig.top_marker = true;
 	#endif 
 	
-	Object Broom(des_obj);
+	Object Broom(vectorbig(Vector3d(0.3, 0.0, 0.7), zero_quat));
 	Broom.name = "Broom";
 	Broom.dim = Vector3d(0.02, 0.02, 0.4);
 	Broom.max_expansion = 0.1;
@@ -136,9 +136,8 @@ int main(int argc, char *argv[])
 	Broom.curvature = 2.0;
 	Broom.proximity = 0.03;
 
-	Object Cart(des_obj);
+	Object Cart(vectorbig(Vector3d(0.2, 0.0, 0.54), zero_quat));
 	Cart.name = "Cart";
-	Cart.ideal_pos[2] = 0.54;
 	Cart.dim = Vector3d(0.02, 0.4, 0.02);
 	Cart.max_expansion = 0.1;
 	Cart.max_force = 0;
@@ -403,7 +402,7 @@ int main(int argc, char *argv[])
 
 		/////////////////////////////////////////////////////////////////////////////////////////////////////////////
 		// send final commands //////////////////////////////////////////////////////////////////////////
-		double e = exp(-pow(time/3.0,2.0));  // WARNING
+		double e = exp(-pow(time/1.0,2.0));  // WARNING
 		joints.com_pos = joints.init_pos * e + joints.ref_pos * (1.0-e);
 		wrapper.controlJoint(	joints.mode.segment(6,AIR_N_U-6), 
 								joints.freeze.segment(6,AIR_N_U-6), 
