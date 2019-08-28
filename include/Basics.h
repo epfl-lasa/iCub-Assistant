@@ -30,7 +30,7 @@
 #include <Quaternions.h>
 #include "utils.h"
 
-#define inf 1e20
+// #define inf 1e20
 
 //! appending two vectors
 VectorXd vectorbig(VectorXd a, VectorXd b);

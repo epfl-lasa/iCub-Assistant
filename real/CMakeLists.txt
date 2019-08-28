@@ -40,12 +40,23 @@ SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3")
 SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -O3")
 
 # hardware
-#add_definitions(-DHARDWARE)
+add_definitions(-DHARDWARE)
 
 set(IMU	   "${CMAKE_CURRENT_SOURCE_DIR}/../dependencies/IMU/")
 include_directories (${IMU}/include/)
 file(GLOB IMU_SOURCES 	"${IMU}/src/*.c" "${IMU}/src/*.cpp")
 
-add_library (Model ${MODEL_SOURCES} ${IK_SOURCES} ${LPVDS_SOURCES} ${IMU_SOURCES})
-add_executable (main ${STACK_SOURCES} ${WRAPPER_SOURCES} ${EXTRA_SOURCES})
-TARGET_LINK_LIBRARIES(main -lstdc++fs ${YARP_LIBRARIES} Model pthread fcl ccd)
+## FOR LAGS_DS Settings ##
+set(LAGSDS   "${CMAKE_CURRENT_SOURCE_DIR}/../dependencies/lagsDS-lib/")
+include_directories (${LAGSDS}/include/)
+file(GLOB LAGSDS_SOURCES "${LAGSDS}/src/lagsDS/*.cpp")
+## GPR_Wrap Settings ##
+find_package(gaussian_process_regression)
+include_directories(${gaussian_process_regression_INCLUDE_DIRS})
+file(GLOB GPR_SOURCES "${LAGSDS}/src/lagsDS/GPRwrap.cpp")
+
+add_library(Dependencies ${MODEL_SOURCES} ${IK_SOURCES} ${IMU_SOURCES})
+add_library(Model ${LPVDS_SOURCES} ${WRAPPER_SOURCES} ${EXTRA_SOURCES})
+TARGET_LINK_LIBRARIES(Model -lstdc++fs ${YARP_LIBRARIES} pthread fcl ccd)
+add_executable(main ${STACK_SOURCES} ${GPR_SOURCES} )
+TARGET_LINK_LIBRARIES(main Model Dependencies)

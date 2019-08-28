@@ -14,10 +14,14 @@ Manipulation::Manipulation()
 	reading_rh = VectorXd::Zero(6);
 	grav_compns = VectorXd::Zero(AIR_N_U);
 	
-	#ifdef HARDWARE
+	#ifdef ICUB5
 		// pure bias values read from the hardware when stretching the arms and subtracting lower arm weights
 		bias_lh << -11.8466,  -14.6179,  -36.7255,  0.177665, -0.748966,   0.18572;
 		bias_rh <<  32.6632,  -5.57603,  -55.8315, -0.748966, -0.511756,  0.313862;
+	#elif ICUB33
+		// pure bias values read from the hardware when stretching the arms and subtracting lower arm weights
+		bias_lh << 11.7387,   6.31751,   10.4043, 0.0467604,  0.417137,  0.537757;
+		bias_rh << 16.2898,   16.8943,   4.73801, -0.233956,  0.600148,  0.097026;
 	#endif
 
 	// multiarm ds variables
@@ -27,13 +31,13 @@ Manipulation::Manipulation()
 	dtau = 0;
 	orientation_factor = 3.0;
 	A_V = MatrixXd::Zero(3,3);
-	A_V(0,0) = -5;
-	A_V(1,1) = -5;
-	A_V(2,2) = -5;
+	A_V(0,0) = -5/2.0;
+	A_V(1,1) = -5/2.0;
+	A_V(2,2) = -5/2.0;
 	A = MatrixXd::Zero(3,3);
-	A(0,0) = -1;
-	A(1,1) = -1;
-	A(2,2) = -1;
+	A(0,0) = -1/2.0;
+	A(1,1) = -1/2.0;
+	A(2,2) = -1/2.0;
 
 	// ideal pos
 	xd[0] = zero_v3; qd[0] = zero_quat;
@@ -131,8 +135,8 @@ void Manipulation::compliance_control(Contact_Manager &points, double force)
 	Vector3d hold_force_r = (mid - points[CN_RH].ref_p.pos.segment(0,3)).normalized() * force;
 
 	// This function should be called once and only after inverse kinematics	
-	points[CN_LH].ref_p.pos.segment(0,3) += truncate_command(((force_lh).segment(0,3)+hold_force_l) * 0.1/30.0, 0.2, -0.2);
-	points[CN_RH].ref_p.pos.segment(0,3) += truncate_command(((force_rh).segment(0,3)+hold_force_r) * 0.1/30.0, 0.2, -0.2);
+	points[CN_LH].ref_p.pos.segment(0,3) += truncate_command(((force_lh).segment(0,3)+hold_force_l) * 0.1/20.0, 0.2, -0.2);
+	points[CN_RH].ref_p.pos.segment(0,3) += truncate_command(((force_rh).segment(0,3)+hold_force_r) * 0.1/20.0, 0.2, -0.2);
 }
 
 void Manipulation::jacobian_transpose(Contact_Manager &points, Joints &joints, double force)
@@ -157,7 +161,7 @@ void Manipulation::update(bool reachable, double dt, Object * box, bool grasp)
 	// orientation control gains
 	MatrixXd A_V_Q = (A_V.array() * orientation_factor).matrix();
 	MatrixXd A_Q = (A.array() * orientation_factor).matrix();
-
+	
 	// dynamical systems
 	for(int i=0; i<2; i++)
 	{

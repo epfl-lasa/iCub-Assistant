@@ -234,17 +234,18 @@ void Wrapper::initialize()
 	status |= setupJointConnector(JointPort[5], robotName + "/right_arm", 7);
 
 	// other sensors
-	#ifdef HARDWARE
+	#ifdef ICUB5
+		// port definition in old icub
 		status |= setupSensorConnector(SensorPort[0], robotName + "/left_leg/analog:o");
 		status |= setupSensorConnector(SensorPort[1], robotName + "/right_leg/analog:o");
-	#else
+	#elif defined(ICUBSIM) || defined(ICUB33)
 		status |= setupSensorConnector(SensorPort[0], robotName + "/left_foot/analog:o");
 		status |= setupSensorConnector(SensorPort[1], robotName + "/right_foot/analog:o");
 	#endif
 	status |= setupSensorConnector(SensorPort[2], robotName + "/left_arm/analog:o");
 	status |= setupSensorConnector(SensorPort[3], robotName + "/right_arm/analog:o");
 
-	#ifdef HARDWARE
+	#if defined(ICUB5) || defined(ICUB33)
 		// initialize IMU
 		printf("Check which tty is associated to the IMU:\n");
 		printf("ls /dev/ttyACM (now press tab)\n");
@@ -257,7 +258,7 @@ void Wrapper::initialize()
 		pthread_t thread1;
 		pthread_mutex_init (&mutex , NULL);
 		int i1 = pthread_create( &thread1, NULL, IMU_thread, (void*)(this));
-	#else
+	#elif defined(ICUBSIM)
 		status |= setupSensorConnector(SensorPort[4], robotName + "/inertial");
 		status |= setupSensorConnector(SensorPort[5], "/clock");
 	#endif
@@ -303,7 +304,7 @@ void Wrapper::close()
         JointPort[i].robotDevice.close();
 	for(int i=0; i<6; i++)
         SensorPort[i].port.close();
-	#ifdef HARDWARE
+	#if defined(ICUB5) || defined(ICUB33)
 		pthread_mutex_destroy(&mutex);
 	#endif
 }
@@ -357,6 +358,108 @@ void Wrapper::controlJoint(VectorXd mode, VectorXd freeze, VectorXd ref_pos, Vec
 
 void Wrapper::setPidJoint(int k, double kp, double kd, double ki)
 {
+	MatrixXd gain = MatrixXd(32,3);
+	#ifdef ICUB5
+		gain << 32000.00, 6000.00, 60.00,
+				32000.00, 6000.00, 60.00,
+				32000.00, 6000.00, 60.00,
+				50.00, 500.00, 1.00,
+				50.00, 500.00, 1.00,
+				100.00, 700.00, 2.00,
+				32000.00, 100.00, 60.00,
+				-32000.00, -100.00, -60.00,
+				32000.00, 100.00, 60.00, 
+				-32000.00, -100.00, -60.00,
+				-32000.00, -100.00, -60.00, 
+				-32000.00, -100.00, -60.00, 
+				32000.00, 100.00, 60.00, 
+				-32000.00, -100.00, -60.00,
+				32000.00, 100.00, 60.00, 
+				-32000.00, -100.00, -60.00,
+				-32000.00, -100.00, -60.00, 
+				-32000.00, -100.00, -60.00, 
+				32000.00, 50.00, 60.00, 
+				32000.00, 50.00, 60.00, 
+				10000.00, 0.00, 10.00, 
+				32000.00, 20.00, 60.00,
+				200.00, 1000.00, 1.00, 
+				100.00, 100.00, 2.00, 
+				100.00, 100.00, 2.00, 
+				32000.00, 50.00, 60.00,
+				32000.00, 50.00, 60.00, 
+				10000.00, 0.00, 10.00, 
+				32000.00, 20.00, 60.00, 
+				200.00, 1000.00, 1.00,
+				100.00, 100.00, 2.00,
+				100.00, 100.00, 2.00;
+	#elif defined(ICUB33)
+		gain << -1066.66, 0.00, -14222.18, 
+				-1066.66, 0.00, -10666.64, 
+				-711.11, 0.00, -7111.09, 
+				-300.00, -10.00, -100.00, 
+				300.00, 10.00, 100.00, 
+				1100.00, 0.00, 0.00, 
+				-1066.66, 0.00, -10666.64, 
+				2066.66, 0.00, 14222.18, 
+				-711.11, 0.00, -7111.09, 
+				-1066.66, 0.00, -1066.64, 
+				2200.00, 0.00, 0.09, 
+				2200.00, 0.00, 0.09, 
+				1066.66, 0.00, 10666.64, 
+				-2066.66, 0.00, -14222.18, 
+				711.11, 0.00, 7111.09, 
+				1066.66, 0.00, 1066.64, 
+				-2105.00, 0.00, -0.09, 
+				-2310.00, 0.00, -0.09, 
+				711.11, 0.00, 7111.09, 
+				1066.66, 0.00, 10666.64, 
+				711.11, 0.00, 7111.09, 
+				1066.66, 0.00, 10666.64, 
+				-200.00, 0.00, -200.00, 
+				-500.00, 0.00, -50.00, 
+				-500.00, 0.00, -50.00, 
+				-711.11, 0.00, -7111.09, 
+				-1066.66, 0.00, -10666.64, 
+				-711.11, 0.00, -7111.09, 
+				-1066.66, 0.00, -10666.64, 
+				200.00, 0.00, 200.00, 
+				500.00, 0.00, 50.00, 
+				500.00, 0.00, 50.00;
+	#elif defined(ICUBSIM)
+		gain << 1.745, 0.174, 0.174, 
+				1.745, 0.174, 0.174, 
+				1.745, 0.174, 0.174, 
+				1.745, 0.122, 0.003, 
+				1.745, 0.122, 0.003, 
+				1.745, 0.122, 0.003, 
+				17.453, 0.174, 0.174, 
+				17.453, 0.174, 0.174, 
+				17.453, 0.174, 0.174, 
+				17.453, 0.174, 0.174, 
+				17.453, 0.174, 0.174, 
+				17.453, 0.174, 0.174, 
+				17.453, 0.174, 0.174, 
+				17.453, 0.174, 0.174, 
+				17.453, 0.174, 0.174, 
+				17.453, 0.174, 0.174, 
+				17.453, 0.174, 0.174, 
+				17.453, 0.174, 0.174, 
+				1.745, 0.174, 0.174, 
+				1.745, 0.174, 0.174, 
+				1.745, 0.174, 0.174, 
+				1.745, 0.174, 0.174, 
+				1.745, 0.174, 0.174, 
+				1.745, 0.174, 0.174, 
+				1.745, 0.174, 0.174, 
+				1.745, 0.174, 0.174, 
+				1.745, 0.174, 0.174, 
+				1.745, 0.174, 0.174, 
+				1.745, 0.174, 0.174, 
+				1.745, 0.174, 0.174, 
+				1.745, 0.174, 0.174, 
+				1.745, 0.174, 0.174;
+	#endif
+
 	yarp::dev::Pid * pid = new yarp::dev::Pid;
 	for(int i=0; i<6; i++)
 	{
@@ -364,17 +467,18 @@ void Wrapper::setPidJoint(int k, double kp, double kd, double ki)
 		{
 			if(map(i,j) == k)
 			{
-				#ifdef HARDWARE
+				#ifdef ICUB5
+					// old yarp definition
 					JointPort[i].ipid->getPid(j,pid);
-					pid->kp = int(kp);
-					pid->kd = int(kd);
-					pid->ki = int(ki);
+					pid->kp = int(kp * gain(map(i,j),1));
+					pid->kd = int(kd * gain(map(i,j),2));
+					pid->ki = int(ki * gain(map(i,j),3));
 					JointPort[i].ipid->setPid(j,*pid);
-				#else
+				#elif defined(ICUBSIM) || defined(ICUB33)
 					JointPort[i].ipid->getPid(yarp::dev::VOCAB_PIDTYPE_POSITION,j,pid);
-					pid->kp = kp;
-					pid->kd = kd;
-					pid->ki = ki;
+					pid->kp = kp * gain(map(i,j),1);
+					pid->kd = kd * gain(map(i,j),2);
+					pid->ki = ki * gain(map(i,j),3);
 					JointPort[i].ipid->setPid(yarp::dev::VOCAB_PIDTYPE_POSITION,j,*pid);
 				#endif
 			}
@@ -394,9 +498,10 @@ void Wrapper::getPidJoint(int k, double& kp, double& kd, double& ki)
 		{
 			if(map(i,j) == k)
 			{
-				#ifdef HARDWARE
+				#ifdef ICUB5
+					// old yarp definition
 					JointPort[i].ipid->getPid(j,pid);
-				#else
+				#elif defined(ICUBSIM) || defined(ICUB33)
 					JointPort[i].ipid->getPid(yarp::dev::VOCAB_PIDTYPE_POSITION,j,pid);
 				#endif
 				kp = pid->kp;
@@ -433,7 +538,7 @@ void Wrapper::readSensors(VectorXd &sens_pos, VectorXd &sens_vel, VectorXd &sens
 
 	///////////////////////////////////////////////////////////////////////////////////////
 	// read IMU
-	#ifdef HARDWARE
+	#if defined(ICUB5) || defined(ICUB33)
 		Vector3d rot;
 		rot[0]=EULER[0]; 
 		rot[1]=EULER[1]; 
@@ -467,7 +572,7 @@ void Wrapper::readSensors(VectorXd &sens_pos, VectorXd &sens_vel, VectorXd &sens
 
 		// local-frame acceleration ( gives normalized g when stationary )
 		linacc = mount * linacc;
-	#else
+	#elif defined(ICUBSIM)
 		SensorPort[4].values = SensorPort[4].port.read();
 		Vector3d rot;
 		for (int j=0; j<3; j++)
@@ -495,14 +600,15 @@ void Wrapper::readSensors(VectorXd &sens_pos, VectorXd &sens_vel, VectorXd &sens
 	///////////////////////////////////////////////////////////////////////////////////////
 	// read time
 	double old_time = time;
-	#ifdef HARDWARE
+	#if defined(ICUB5) || defined(ICUB33)
 		time = yarp::os::Time::now() - startTime;
-	#else
+	#elif defined(ICUBSIM)
 		SensorPort[5].values = SensorPort[5].port.read();
 		if(SensorPort[5].values)
 			time = SensorPort[5].values->get(0).asDouble() + SensorPort[5].values->get(1).asDouble()/pow(10,9) - startTime;
 	#endif
 	dt = max(time - old_time, minTimeStep);
+	dt = min(dt, 0.02);
 
 	///////////////////////////////////////////////////////////////////////////////////////
 	// read joints
@@ -522,111 +628,77 @@ void Wrapper::readSensors(VectorXd &sens_pos, VectorXd &sens_vel, VectorXd &sens
 
 int Wrapper::applyExternalWrench(string link, VectorXd Force, double duration)
 {
-	yarp::os::Bottle& bot = ExternalWrenchPort.port.prepare();
-	bot.clear();
-	bot.addString(link);
-	bot.addFloat64(Force[0]);
-	bot.addFloat64(Force[1]);
-	bot.addFloat64(Force[2]);
-	bot.addFloat64(Force[3]);
-	bot.addFloat64(Force[4]);
-	bot.addFloat64(Force[5]);
-	bot.addFloat64(duration);
-	ExternalWrenchPort.port.write();
+	#if defined(ICUBSIM)
+		yarp::os::Bottle& bot = ExternalWrenchPort.port.prepare();
+		bot.clear();
+		bot.addString(link);
+		bot.addFloat64(Force[0]);
+		bot.addFloat64(Force[1]);
+		bot.addFloat64(Force[2]);
+		bot.addFloat64(Force[3]);
+		bot.addFloat64(Force[4]);
+		bot.addFloat64(Force[5]);
+		bot.addFloat64(duration);
+		ExternalWrenchPort.port.write();
+	#endif
 }
 
 void Wrapper::rePID(bool walk)
 {
-	MatrixXd gain = MatrixXd(32,3);
-	#ifdef HARDWARE
-		gain << 32000.00, 6000.00, 60.00,
-				32000.00, 6000.00, 60.00,
-				32000.00, 6000.00, 60.00,
-				50.00, 500.00, 1.00,
-				50.00, 500.00, 1.00,
-				100.00, 700.00, 2.00,
-				32000.00, 100.00, 60.00,
-				-32000.00, -100.00, -60.00,
-				32000.00, 100.00, 60.00, 
-				-32000.00, -100.00, -60.00,
-				-32000.00, -100.00, -60.00, 
-				-32000.00, -100.00, -60.00, 
-				32000.00, 100.00, 60.00, 
-				-32000.00, -100.00, -60.00,
-				32000.00, 100.00, 60.00, 
-				-32000.00, -100.00, -60.00,
-				-32000.00, -100.00, -60.00, 
-				-32000.00, -100.00, -60.00, 
-				32000.00, 50.00, 60.00, 
-				32000.00, 50.00, 60.00, 
-				10000.00, 0.00, 10.00, 
-				32000.00, 20.00, 60.00,
-				200.00, 1000.00, 1.00, 
-				100.00, 100.00, 2.00, 
-				100.00, 100.00, 2.00, 
-				32000.00, 50.00, 60.00,
-				32000.00, 50.00, 60.00, 
-				10000.00, 0.00, 10.00, 
-				32000.00, 20.00, 60.00, 
-				200.00, 1000.00, 1.00,
-				100.00, 100.00, 2.00,
-				100.00, 100.00, 2.00;
+	#if defined(ICUB5) || defined(ICUB33)
 		for(int i=0;i<32;i++)
-			setPidJoint(i,gain(i,0), gain(i,1), gain(i,2)*0);
-	#else
-		gain << 1.745, 0.174, 0.174, 
-				1.745, 0.174, 0.174, 
-				1.745, 0.174, 0.174, 
-				1.745, 0.122, 0.003, 
-				1.745, 0.122, 0.003, 
-				1.745, 0.122, 0.003, 
-				17.453, 0.174, 0.174, 
-				17.453, 0.174, 0.174, 
-				17.453, 0.174, 0.174, 
-				17.453, 0.174, 0.174, 
-				17.453, 0.174, 0.174, 
-				17.453, 0.174, 0.174, 
-				17.453, 0.174, 0.174, 
-				17.453, 0.174, 0.174, 
-				17.453, 0.174, 0.174, 
-				17.453, 0.174, 0.174, 
-				17.453, 0.174, 0.174, 
-				17.453, 0.174, 0.174, 
-				1.745, 0.174, 0.174, 
-				1.745, 0.174, 0.174, 
-				1.745, 0.174, 0.174, 
-				1.745, 0.174, 0.174, 
-				1.745, 0.174, 0.174, 
-				1.745, 0.174, 0.174, 
-				1.745, 0.174, 0.174, 
-				1.745, 0.174, 0.174, 
-				1.745, 0.174, 0.174, 
-				1.745, 0.174, 0.174, 
-				1.745, 0.174, 0.174, 
-				1.745, 0.174, 0.174, 
-				1.745, 0.174, 0.174, 
-				1.745, 0.174, 0.174;
+		{
+			double mult = (i==8 || i==14) ? 0.2 : 1;
+			setPidJoint(i,mult, mult, 0);
+		}
+	#elif defined(ICUBSIM)
 		for(int i=0;i<32;i++)
-			setPidJoint(i,gain(i,0), gain(i,1), gain(i,2)*0);
+			setPidJoint(i, 1, 1, 0);
 		if(walk)
 		{
 			// hips
-			setPidJoint(13-6, 10, 0.6, 0);
-			setPidJoint(19-6, 10, 0.6, 0);
-			setPidJoint(12-6, 10, 0.6, 0);
-			setPidJoint(18-6, 10, 0.6, 0);
+			setPidJoint(13-6, 10/17.453, 0.6/0.174, 0);
+			setPidJoint(19-6, 10/17.453, 0.6/0.174, 0);
+			setPidJoint(12-6, 10/17.453, 0.6/0.174, 0);
+			setPidJoint(18-6, 10/17.453, 0.6/0.174, 0);
 			
 			// knees
-			setPidJoint(15-6, 10, 0.3, 0);
-			setPidJoint(21-6, 10, 0.3, 0);
+			setPidJoint(15-6, 10/17.453, 0.3/0.174, 0);
+			setPidJoint(21-6, 10/17.453, 0.3/0.174, 0);
 
 			// ankles
-			setPidJoint(14-6, 3, 0.3, 0);
-			setPidJoint(20-6, 3, 0.3, 0);
-			setPidJoint(16-6, 3, 0.1, 0);
-			setPidJoint(22-6, 3, 0.1, 0);
-			setPidJoint(17-6, 3, 0.1, 0);
-			setPidJoint(23-6, 3, 0.1, 0);
+			setPidJoint(14-6, 3/17.453, 0.3/0.174, 0);
+			setPidJoint(20-6, 3/17.453, 0.3/0.174, 0);
+			setPidJoint(16-6, 3/17.453, 0.1/0.174, 0);
+			setPidJoint(22-6, 3/17.453, 0.1/0.174, 0);
+			setPidJoint(17-6, 3/17.453, 0.1/0.174, 0);
+			setPidJoint(23-6, 3/17.453, 0.1/0.174, 0);
 		}
 	#endif
+}
+
+void Wrapper::graspLeft(bool close)
+{
+	int released_targets[9] = {15, 30, 5, 97, 0, 0, 8, 0, 0}; 
+	int grasped_targets[9] = {15, 90, 45, 97, 90, 110, 90, 110, 190}; 
+
+	if(close)
+		for(int j=7; j<16;j++)
+			JointPort[4].pos->positionMove(j, grasped_targets[j-7]);
+	else
+		for(int j=7; j<16;j++)
+			JointPort[4].pos->positionMove(j, released_targets[j-7]);
+}
+
+void Wrapper::graspRight(bool close)
+{
+	int released_targets[9] = {15, 30, 5, 0, 9, 0, 15, 5, 267}; 
+	int grasped_targets[9] = {15, 30, 10, 145, 9, 0, 77, 50, 267}; 
+
+	if(close)
+		for(int j=7; j<16;j++)
+			JointPort[5].pos->positionMove(j, grasped_targets[j-7]);
+	else
+		for(int j=7; j<16;j++)
+			JointPort[5].pos->positionMove(j, released_targets[j-7]);
 }

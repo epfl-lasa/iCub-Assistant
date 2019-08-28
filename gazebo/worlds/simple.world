@@ -102,7 +102,7 @@
       <heading_deg>0</heading_deg>
     </spherical_coordinates>
     <include>
-      <uri>../robots/icub</uri>
+      <uri>../robots/icub5</uri>
       <name>iCub</name>
       <pose frame=''>0 0 0.6 0 -0 3.1415</pose>
     </include>

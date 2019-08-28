@@ -39,9 +39,10 @@ struct jointConnector
 	yarp::dev::IPidControl			*ipid;
 	yarp::dev::IControlLimits		*ilimit;
 	int								number;
-#ifdef HARDWARE
+#ifdef ICUB5
+	// old yarp definition
 	yarp::dev::IControlMode2		*ictrl;
-#else
+#elif defined(ICUBSIM) || defined(ICUB33)
 	yarp::dev::IControlMode			*ictrl;
 #endif
 };
@@ -97,6 +98,8 @@ public:
 	void getPidJoint(int k, double& kp, double& kd, double& ki);
 	void getJointLimits(double * minPosition, double * maxPosition);
 	void readSensors(VectorXd &sens_pos, VectorXd &sens_vel, VectorXd &sens_tau);
+	void graspLeft(bool close);
+	void graspRight(bool close);
 
 	// external wrenches
 	sensorConnector ExternalWrenchPort;

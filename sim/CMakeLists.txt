@@ -24,7 +24,6 @@ include_directories (${WRAPPER}/include/)
 include_directories (${IK})
 include_directories(${FCL_INCLUDE_DIRS})
 include_directories(${CCD_INCLUDE_DIR})
-#include_directories(${OBSTC}/include/)
 
 file(GLOB MODEL_SOURCES "${SDFAST}/*.c")
 file(GLOB IK_SOURCES 	"${IK}/*.c")

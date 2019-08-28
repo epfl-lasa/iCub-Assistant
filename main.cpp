@@ -28,8 +28,8 @@ enum trigger {NONE=0, GO, HALT, TAKE, RELEASE};
 // robot's default posture
 # define des_com vectorbig(Vector3d(0.0, 0.0, 0.53), zero_quat)
 # define des_obj vectorbig(Vector3d(0.2, 0.0, 0.65), zero_quat)
-# define des_lf vectorbig(Vector3d(0.0, 0.095, 0.0), zero_quat)
-# define des_rf vectorbig(Vector3d(0.0,-0.095, 0.0), zero_quat)
+# define des_lf vectorbig(Vector3d(0.0, 0.11, 0.0), zero_quat)
+# define des_rf vectorbig(Vector3d(0.0,-0.11, 0.0), zero_quat)
 
 bool exit_sim = false;
 void my_handler(int s)
@@ -84,46 +84,26 @@ int main(int argc, char *argv[])
 	sigIntHandler.sa_flags = 0;
 	sigaction(SIGINT, &sigIntHandler, NULL);
 
-	// YARP Wrapper
-	Wrapper wrapper;
-	if(wrapper.checkRobot(argc, argv))
-		{cout << "Robot name problem" << endl; return 1;}
-	wrapper.initialize();
-	wrapper.rePID(false);
-
-	// Initialize reading robot/object pos from gazebo/mocap
-	#ifdef HARDWARE
-		wrapper.initObject(1, "/icub/DesiredCoMVelocity:o");
-	#else
-		wrapper.initObject(0, wrapper.robotName + "/get_root_link_WorldPose:o");
-		wrapper.initObject(1, "/BoxSmall/GraspedObject_WorldPose:o");
-		wrapper.initObject(2, "/BoxBig/GraspedObject_WorldPose:o");
-		wrapper.initObject(3, "/Broom/GraspedObject_WorldPose:o");
-		wrapper.initObject(4, "/Cart/GraspedObject_WorldPose:o");
-	#endif
-	yarp::os::Time::delay(1);
-	for(int i=0; i<=4; i++)
-		if(wrapper.readObject(i).isZero())
-			{
-				cout << "Error: Object " << i << " mocap problem!" << endl; 
-				return 1;
-			}
 	// list of objects sensed from the environment
 	Object BoxSmall(des_obj);
 	BoxSmall.name = "BoxSmall";
-	BoxSmall.dim = Vector3d(0.2, 0.2, 0.2);
 	BoxSmall.max_expansion = 0.1;
-	BoxSmall.max_force = 20;
-	#ifdef HARDWARE 
+	BoxSmall.max_force = 15;
+	#if defined(ICUB5) || defined(ICUB33)
+		BoxSmall.dim = Vector3d(0.16, 0.23, 0.13);
 		BoxSmall.top_marker = true;
+		BoxSmall.proximity = 0.05;
+	#elif defined(ICUBSIM)
+		BoxSmall.dim = Vector3d(0.2, 0.2, 0.2);
+		BoxSmall.proximity = 0.1;
 	#endif
 
 	Object BoxBig(des_obj);
 	BoxBig.name = "BoxBig";
 	BoxBig.dim = Vector3d(1.0, 0.2, 0.2);
 	BoxBig.max_expansion = 0.1;
-	BoxBig.max_force = 20;
-	#ifdef HARDWARE
+	BoxBig.max_force = 10;
+	#if defined(ICUB5) || defined(ICUB33)
 		BoxBig.top_marker = true;
 	#endif 
 	
@@ -147,9 +127,44 @@ int main(int argc, char *argv[])
 	Cart.curvature = 2.0;
 	Cart.proximity = 0.03;
 
+		// YARP Wrapper
+	Wrapper wrapper;
+	if(wrapper.checkRobot(argc, argv))
+		{cout << "Robot name problem" << endl; return 1;}
+	wrapper.initialize();
+	wrapper.rePID(false);
+
+	// Initialize reading robot/object pos from gazebo/mocap
+	#if defined(ICUB5) || defined(ICUB33)
+		wrapper.initObject(0, wrapper.robotName + "/get_root_link_WorldPose:o");
+		wrapper.initObject(1, "/BoxSmall/GraspedObject_WorldPose:o");
+		wrapper.initObject(2, "/BoxBig/GraspedObject_WorldPose:o");
+		wrapper.initObject(3, "/Broom/GraspedObject_WorldPose:o");
+		wrapper.initObject(4, "/Cart/GraspedObject_WorldPose:o");
+
+		wrapper.Object[0] = des_com;
+		wrapper.Object[1] = BoxSmall.ideal_pos;
+		wrapper.Object[2] = BoxBig.ideal_pos;
+		wrapper.Object[3] = Broom.ideal_pos;
+		wrapper.Object[4] = vectorbig(Vector3d(0.25, 0.0, 0.5), zero_quat);
+	#elif defined(ICUBSIM)
+		wrapper.initObject(0, wrapper.robotName + "/get_root_link_WorldPose:o");
+		wrapper.initObject(1, "/BoxSmall/GraspedObject_WorldPose:o");
+		wrapper.initObject(2, "/BoxBig/GraspedObject_WorldPose:o");
+		wrapper.initObject(3, "/Broom/GraspedObject_WorldPose:o");
+		wrapper.initObject(4, "/Cart/GraspedObject_WorldPose:o");
+	#endif
+	yarp::os::Time::delay(1);
+	for(int i=0; i<=4; i++)
+		if(wrapper.readObject(i).isZero())
+			{
+				cout << "Error: Object " << i << " mocap problem!" << endl; 
+				return 1;
+			}
+
 	// logger
 	std::ofstream OutRecord;
-	string path_log = "/tmp/log_" + wrapper.robotName + ".txt";
+	string path_log = "log_icub.txt";
 	OutRecord.open(path_log.c_str());
 
 	// inverse kinematics
@@ -175,7 +190,7 @@ int main(int argc, char *argv[])
 		joints.mode[i] = 1;
 
 	// set arms to force control in simulation
-	#ifndef HARDWARE
+	#if defined(ICUBSIM)
 		for(int i=24;i<24+14;i++) 
 			joints.mode[i] = 2;
 	#endif
@@ -187,6 +202,10 @@ int main(int argc, char *argv[])
 	// update joint limits
 	wrapper.initializeJoint(joints.mode.segment(6,AIR_N_U-6), joints.freeze.segment(6,AIR_N_U-6));
 	wrapper.getJointLimits(&points.model.qmin[0], &points.model.qmax[0]);
+	points.model.qmax[36-6] -= 10;
+	points.model.qmax[29-6] -= 10;
+	points.model.qmin[32-6] += 10;
+	points.model.qmin[25-6] += 10;
 
 	// read data once
 	yarp::os::Time::delay(1);
@@ -198,7 +217,7 @@ int main(int argc, char *argv[])
 	Front.sens_pos = des_obj;
 	Front.dim = Vector3d(0.2, 0.2, 0.2);
 	Front.max_expansion = 0.1;
-	Front.max_force = 20;
+	Front.max_force = 0;
 	Front.name = "Front";
 	Object Joystick = Front;
 	Joystick.name = "Joystick";
@@ -213,8 +232,8 @@ int main(int argc, char *argv[])
 	nonblock(1);
 
 	// start the loop
-	Object *Ptarget = &Cart;
-	double calib_time = 3;  // WARNING
+	Object *Ptarget = &Joystick;
+	double calib_time = 10;
 	object_state task = EMPTY;
 	trigger signal = NONE;
 	bool navigate = false;
@@ -228,6 +247,7 @@ int main(int argc, char *argv[])
 		/////////////////////////////////////////////////////////////////////////////////////////////////////////////
 		// sensing //////////////////////////////////////////////////////////////////////////////////////////////////
 		double time = wrapper.time - start_time;
+		cout << time << "  |   ";
 		
 		// read sensors
 		loadData(wrapper, points, joints);
@@ -240,11 +260,17 @@ int main(int argc, char *argv[])
 
 		// robot position
 		VectorXd Root = wrapper.readObject(0);
-		#ifdef HARDWARE
-			// do whatever transform necessary to find root's pos/rot
-		#else
+		// do whatever transform necessary to find root's pos/rot
+		#ifdef ICUB5
+			Root.segment(0,3) += quat2dc(Root.segment(3,4)) * Vector3d(0.05, -0.05, 0.05);
+		#elif defined(ICUB33)
+			Root.segment(0,3) += quat2dc(Root.segment(3,4)) * Vector3d(0.05, -0.05, 0.05);
+		#elif defined(ICUBSIM)
 			Root.segment(3,4) = quat_mul(Root.segment(3,4), ang2quat(Vector3d(0,0,M_PI))); 
 		#endif
+
+		OutRecord << time << "   " << Root.segment(0,3).transpose() << "  " << 
+					quat2ang(Root.segment(3,4)).transpose() << endl;
 
 		// object world positions
 		VectorXd Base = points.model.get_trans7(0,zero_v3);
@@ -287,21 +313,24 @@ int main(int argc, char *argv[])
 				case 'q': walking.ref_w += 0.1; break;
 				case 'e': walking.ref_w -= 0.1; break;
 
+				case 'c': wrapper.graspLeft(true); wrapper.graspRight(true); break;
+				case 'v': wrapper.graspLeft(false); wrapper.graspRight(false); break;
+
 				// desired object position
-				case 'i': Joystick.sens_pos[0] += delta; break;
-				case 'k': Joystick.sens_pos[0] -= delta; break;
-				case 'j': Joystick.sens_pos[1] += delta; break;
-				case 'l': Joystick.sens_pos[1] -= delta; break;
-				case 'p': Joystick.sens_pos[2] += delta; break;
-				case ';': Joystick.sens_pos[2] -= delta; break;
-				case 'o': Joystick.sens_pos.segment(3,4) = quat_mul(ang2quat(Vector3d(0,0,-delta*5)), Joystick.sens_pos.segment(3,4)); break;
-				case 'u': Joystick.sens_pos.segment(3,4) = quat_mul(ang2quat(Vector3d(0,0, delta*5)), Joystick.sens_pos.segment(3,4)); break;
+				case 'i': Joystick.ideal_pos[0] += delta; break;
+				case 'k': Joystick.ideal_pos[0] -= delta; break;
+				case 'j': Joystick.ideal_pos[1] += delta; break;
+				case 'l': Joystick.ideal_pos[1] -= delta; break;
+				case 'p': Joystick.ideal_pos[2] += delta; break;
+				case ';': Joystick.ideal_pos[2] -= delta; break;
+				case 'o': Joystick.ideal_pos.segment(3,4) = quat_mul(ang2quat(Vector3d(0,0,-delta*5)), Joystick.ideal_pos.segment(3,4)); break;
+				case 'u': Joystick.ideal_pos.segment(3,4) = quat_mul(ang2quat(Vector3d(0,0, delta*5)), Joystick.ideal_pos.segment(3,4)); break;
 			}
 		}
 
 		// state machine
 		double eps1	= 0.5 * Ptarget->max_expansion; // if hands reached the point close to the object
-		double eps2	= 0.5 * Ptarget->proximity; // if hands reached the point close to the object
+		double eps2	= 2.0 * Ptarget->proximity; // if hands reached the point close to the object
 		double eps_rest	= 0.02; // if hands reached the default position
 		switch(task)
 		{
@@ -359,9 +388,10 @@ int main(int argc, char *argv[])
 		IK.solve(points, copy, joints.freeze);
 		bool feasibility = walking.state==IDLE && (IK.return_hand_error()< Ptarget->proximity*2.0) && !collision.check(points);
 		manip.update(feasibility, wrapper.dt, Ptarget, grasp);
+		points.load_tasks(des_com, des_lf, des_rf, manip.get_hands());
 
 		cout << Ptarget->name << "   |   " <<  task << "   " << signal << "   |   " << 
-				IK.return_hand_error() << "   " << collision.check(points);
+				IK.return_hand_error() << "   " << collision.check(points) << "    |     ";
 
 		// communication between picking and walking state machines
 		if(task==PICK_APPROACH || task==DROP_APPROACH)
@@ -370,8 +400,16 @@ int main(int argc, char *argv[])
 		if((IK.return_hand_error()<Ptarget->proximity) && !collision.check(points))
 				picking_walk = false;
 
+		//compliant arm control
+		double force = (1.0 - Ptarget->grow) * Ptarget->max_force;
+		#if defined(ICUB5) || defined(ICUB33)
+			if(time>calib_time)
+				manip.compliance_control(points, force);
+		#elif defined(ICUBSIM)
+			manip.jacobian_transpose(points, joints, force);
+		#endif
+
 		// whole-body IK 
-		points.load_tasks(des_com, des_lf, des_rf, manip.get_hands());
 		joints.ref_pos = joints.Ik_pos0;
 		IK.solve(points, joints.ref_pos, joints.freeze);
 
@@ -379,30 +417,26 @@ int main(int argc, char *argv[])
 		if(navigate && walking.state == WALK) 
 		{
 			// here navigation determines reference walking velocities
-			Vector3d x_dot = navigation.linear_DS(target.segment(0,7)/2.0+target.segment(7,7)/2.0);
-			x_dot[0] *= x_dot[0]<0 ? 0.25 : 0.5;
-			x_dot[1] *= 0.5;
+			// Vector3d x_dot = navigation.linear_DS(target.segment(0,7)/2.0+target.segment(7,7)/2.0);
+			// navigation with learned lpvds
+			Vector3d x_dot = navigation.nonlinear_DS(wrapper.readObject(1), Root);
+			x_dot[0] *= x_dot[0]<0 ? 0.25 : 1;
+			x_dot[1] *= 1.0;
 			x_dot[2] *= 1.0;
-			walking.demand_speeds(x_dot);
+
+			cout << endl <<  "---------xdot-ds: " << x_dot.transpose() << endl;
+			walking.demand_speeds(x_dot, wrapper.dt);
 		}
 		bool demand = (task==EMPTY || task==PICK_APPROACH || task==HOLD || task==DROP_APPROACH)
 					&& manip.is_at_rest(eps_rest) && (picking_walk || user_walk);
 		walking.update(time, wrapper.dt, demand, points, joints, wrapper);
 
-		cout << "    |     " << walking.state << "   " << demand << "  " << picking_walk << "  |  "  << manip.is_at_rest(eps_rest) << endl;
-
-		// compliant arm control
-		double force = (1.0 - Ptarget->grow) * Ptarget->max_force;
-		#ifdef HARDWARE
-			if(time>calib_time)
-				manip.compliance_control(points, force);
-		#else
-			manip.jacobian_transpose(points, joints, force);
-		#endif
+		cout << walking.state << "   " << demand << "  " << picking_walk << "  " << navigate << "  |  ";
+		cout << endl;
 
 		/////////////////////////////////////////////////////////////////////////////////////////////////////////////
 		// send final commands //////////////////////////////////////////////////////////////////////////
-		double e = exp(-pow(time/1.0,2.0));  // WARNING
+		double e = exp(-pow(time/3.0,2.0));  // WARNING
 		joints.com_pos = joints.init_pos * e + joints.ref_pos * (1.0-e);
 		wrapper.controlJoint(	joints.mode.segment(6,AIR_N_U-6), 
 								joints.freeze.segment(6,AIR_N_U-6), 
