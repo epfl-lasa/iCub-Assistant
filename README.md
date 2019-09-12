@@ -1,6 +1,15 @@
-# Graspin, Walking and Navigating with an iCub
-Algorithms for walking and object manipulation with iCub
+# Grasping, Walking and Navigating with an iCub
+Algorithms for object manipulation and walking with the iCub reported in:
 
+**Reference**   
+Figueroa, N., Faraji, S., Koptev, M. and Billard, A. (2018) "A Dynamical System Approach for Adaptive Grasping, Navigation and Co-Manipulation with Humanoid Robots". In preparation. 
+
+**Contact**: [Nadia Figueroa](http://lasa.epfl.ch/people/member.php?SCIPER=238387) (nadia.figueroafernandez AT epfl dot ch)
+
+**Acknowledgments**
+This work was supported by the EU project [Cogimon](https://cogimon.eu/cognitive-interaction-motion-cogimon) H2020-ICT-23-2014.
+
+## Build Instructions
 -- Get yarp from here. https://www.yarp.it/install_yarp_linux.html#install_on_linux ,
 If using ubuntu 16, get the xenial version in their repository. Make sure you enable the plugins if compiling it from the source.
 
@@ -29,6 +38,7 @@ else
 fi
 ```
 
+## Running Instructions
 -- In one command window run:
 
 ```bash
