@@ -7,7 +7,10 @@ Figueroa, N., Faraji, S., Koptev, M. and Billard, A. (2018) "A Dynamical System 
 **Contact**: [Nadia Figueroa](http://lasa.epfl.ch/people/member.php?SCIPER=238387) (nadia.figueroafernandez AT epfl dot ch)
 
 **Acknowledgments**
-This work was supported by the EU project [Cogimon](https://cogimon.eu/cognitive-interaction-motion-cogimon) H2020-ICT-23-2014.
+This work was supported by the European Communitys Horizon 2020 Research and Innovation pro-
+gramme ICT-23-2014, grant agreement 644727-[Cogimon](https://cogimon.eu/cognitive-interaction-motion-cogimon) and
+643950-[SecondHands](https://secondhands.eu/).
+
 
 ## Build Instructions
 -- Get yarp from here. https://www.yarp.it/install_yarp_linux.html#install_on_linux ,
