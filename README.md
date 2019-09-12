@@ -1,4 +1,4 @@
-# Walking
+# Graspin, Walking and Navigating with an iCub
 Algorithms for walking and object manipulation with iCub
 
 -- Get yarp from here. https://www.yarp.it/install_yarp_linux.html#install_on_linux ,
