@@ -7,7 +7,7 @@ Figueroa, N., Faraji, S., Koptev, M. and Billard, A. (2018) "A Dynamical System 
 **Contact**: [Nadia Figueroa](http://lasa.epfl.ch/people/member.php?SCIPER=238387) (nadia.figueroafernandez AT epfl dot ch) and [Salman Faraji](https://salmanfaraji.github.io/) (salman.faraji AT epfl dot ch)
 
 **Acknowledgments**
-This work was supported by the European Communitys Horizon 2020 Research and Innovation pro-
+This work was supported by the European Community Horizon 2020 Research and Innovation pro-
 gramme ICT-23-2014, grant agreement 644727-[Cogimon](https://cogimon.eu/cognitive-interaction-motion-cogimon) and
 643950-[SecondHands](https://secondhands.eu/).
 
