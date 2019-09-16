@@ -23,7 +23,7 @@ This code has been extensively tested on Ubuntu 16. It has been experimentally t
 
 ## Build Instructions 
 Within the `~./iCub-Assistant/` folder:
-- Go to `./gazebo-yarp-plugins/` folder and install it. Compared to the official package, this copy has two additional plugins that read robot and object positions.
+- Go to `~./iCub-Assistant/gazebo-yarp-plugins/` folder and install it. Compared to the official package, this copy has two additional plugins that read robot and object positions.
 
 ```bash
 mkdir build
@@ -32,7 +32,7 @@ cmake .. -DCMAKE_INSTALL_PREFIX=/usr/local/
 sudo make install
 ```
 
-- Put this path in ~/.bashrc:
+- Put this path in `~/.bashrc`:
 
 ```bash
 export GAZEBO_PLUGIN_PATH=${GAZEBO_PLUGIN_PATH}:/usr/local/lib
@@ -48,22 +48,7 @@ else
 fi
 ```
 
-## Running Instructions 
-The code works for both Gazebo simulation and experiments with the real robot. 
-- In one command window run:
-
-```bash
-yarpserver
-```
-
-- [For Gazebo simulation] Open another window, navigate to gazebo/worlds folder, and run:
-
-```bash
-gazebo -s libgazebo_yarp_clock.so simple.world
-```
-
-
-- Install controller dependencies. Open another window, go to dependencies/collision/to_install folder, unzip each package, navigate to each corresponding folder and:
+- Install controller dependencies. Open another window, go to `~./iCub-Assistant/dependencies/collision/to_install` folder, unzip each package, navigate to each corresponding folder and:
 
 ```bash
 mkdir build
@@ -72,7 +57,7 @@ cmake ..
 sudo make install
 ```
 
-- Open another window, go to sim/ folder, and compile the code:
+- Install the main whole-body controller code. Go to `~./iCub-Assistant/sim/` (for simulated robot) and `~./iCub-Assistant/real/` (for real robot)  folder, and compile the code:
 
 ```bash
 mkdir build
@@ -81,16 +66,33 @@ cmake ..
 make -j
 ```
 
-- Run the controller by:
+
+## Running Instructions 
+The code works for both Gazebo simulation and experiments with the real robot. 
+- In one command window run:
+
+```bash
+yarpserver
+```
+
+- [For Gazebo simulation] Open another window, navigate to `~./iCub-Assistant/gazebo/worlds` folder, and run:
+
+```bash
+gazebo -s libgazebo_yarp_clock.so simple.world
+```
+
+- In another window, go to either `~./iCub-Assistant/sim/` or `~./iCub-Assistant/real/` and run the controller by:
 
 ```bash
 ./main --robot icubSim
 ```
 
-- Play with keyboard to move the hands (see main.cpp) or walk. The robot tracks the object whenever it is reachable.
+- Play with keyboard to move the hands (see `main.cpp`) or walk. The robot tracks the object whenever it is reachable.
 
 - If you have two robots, open another window and run:
 
 ```bash
 ./main --robot icubSim2
 ```
+
+- For real-world experiments, each controller must run individual laptops with the name of the robot being `icub`
