@@ -3,14 +3,14 @@ Algorithms for object manipulation and walking with the iCub as shown below:
 
 - Reaching, Grasping and Manipulating while Balancing  
 <p align="center">
-<img src="https://github.com/epfl-lasa/iCub-Assistant/blob/master/doc/Sec2-VOTracking.gif"  width="400"></>
-  <img src="https://github.com/epfl-lasa/iCub-Assistant/blob/master/doc/Sec2-ReachToGrasp.gif"  width="400"></>
+<img src="https://github.com/epfl-lasa/iCub-Assistant/blob/master/doc/Sec2-VOTracking.gif"  width="350"></>
+  <img src="https://github.com/epfl-lasa/iCub-Assistant/blob/master/doc/Sec2-ReachToGrasp.gif"  width="350"></>
 </p> 
 
 - Compliant and Adaptive Walk-to-Grasp and Guided Walking
 <p align="center">
-<img src="https://github.com/epfl-lasa/iCub-Assistant/blob/master/doc/Sec3-WalkToGrasp.gif"  width="400"></>
-  <img src="https://github.com/epfl-lasa/iCub-Assistant/blob/master/doc/Sec3-WalkToGrasp-moving.gif"  width="400"></>
+<img src="https://github.com/epfl-lasa/iCub-Assistant/blob/master/doc/Sec3-WalkToGrasp.gif"  width="350"></>
+  <img src="https://github.com/epfl-lasa/iCub-Assistant/blob/master/doc/Sec3-WalkToGrasp-moving.gif"  width="350"></>
 </p>
 
 - Adaptive Navigation with Non-Linear DS Learned from Demonstrations
