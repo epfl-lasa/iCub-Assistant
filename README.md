@@ -38,7 +38,7 @@ sudo make install
 export GAZEBO_PLUGIN_PATH=${GAZEBO_PLUGIN_PATH}:/usr/local/lib
 ```
 
-- Also put the path of gazebo/objects and gazebo/robots in ~/.bashrc. For example:
+- Also put the path of gazebo/objects and gazebo/robots in `~/.bashrc`. For example:
 
 ```bash
 if [ -z "$GAZEBO_MODEL_PATH" ]; then
