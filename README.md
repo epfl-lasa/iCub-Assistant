@@ -14,10 +14,6 @@ Algorithms for object manipulation and walking with the iCub as shown below:
 </p>
 
 - Adaptive Navigation with Non-Linear DS Learned from Demonstrations
-<p align="center">
-<img src="https://github.com/epfl-lasa/iCub-Assistant/blob/master/doc/Sec3-WalkToGrasp.gif"  width="400"></>
-  <img src="https://github.com/epfl-lasa/kuka-lpvds-tasks/blob/master/img/inspection-exec.gif"  width="400"></>
-</p>
 
 **Reference**   
 Figueroa, N., Faraji, S., Koptev, M. and Billard, A. (2019) "A Dynamical System Approach for Adaptive Grasping, Navigation and Co-Manipulation with Humanoid Robots". Submitted to ICRA-2020. 
