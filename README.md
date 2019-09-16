@@ -13,7 +13,7 @@ Algorithms for object manipulation and walking with the iCub as shown below:
   <img src="https://github.com/epfl-lasa/kuka-lpvds-tasks/blob/master/img/inspection-exec.gif"  width="400"></>
 </p>
 
-- Navigating with Non-Linear DS Learned from Demonstrations
+- Adaptive Navigation with Non-Linear DS Learned from Demonstrations
 <p align="center">
 <img src="https://github.com/epfl-lasa/iCub-Assistant/blob/master/doc/Sec3-WalkToGrasp.gif"  width="400"></>
   <img src="https://github.com/epfl-lasa/kuka-lpvds-tasks/blob/master/img/inspection-exec.gif"  width="400"></>
