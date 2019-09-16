@@ -36,6 +36,9 @@ This code has been extensively tested on Ubuntu 16. It has been experimentally t
 - Yarp: Install from [yarp-link](https://www.yarp.it/install_yarp_linux.html#install_on_linux). If using ubuntu 16, get the xenial version in their repository. Make sure you enable the plugins if compiling it from the source.
 - Gazebo: Install from [gazebo-link](http://gazebosim.org/tutorials?tut=install_ubuntu&ver=5.0) Version 7 or 9 work properly.
 
+## Thirdparty dependencies
+bla bla...
+
 ## Build Instructions 
 Within the `~./iCub-Assistant/` folder:
 - Go to `~./iCub-Assistant/gazebo-yarp-plugins/` folder and install it. Compared to the official package, this copy has two additional plugins that read robot and object positions.
@@ -62,7 +65,6 @@ else
     export GAZEBO_MODEL_PATH=${GAZEBO_MODEL_PATH}:/home/sfaraji/Dropbox/LASA/gazebo/objects:/home/sfaraji/Dropbox/LASA/gazebo/robots
 fi
 ```
-
 - Install controller dependencies. Open another window, go to `~./iCub-Assistant/dependencies/collision/to_install` folder, unzip each package, navigate to each corresponding folder and:
 
 ```bash
