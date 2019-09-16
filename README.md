@@ -1,8 +1,17 @@
 # Grasping, Walking and Navigating with an iCub
 Algorithms for object manipulation and walking with the iCub as shown below:
 
-... Add gifs here!
+- Reaching, Grasping and Manipulating while Balancing  
+<p align="center">
+<img src="https://github.com/epfl-lasa/iCub-Assistant/blob/master/doc/Sec2-VOTracking.gif"  width="350"></>
+  <img src="https://github.com/epfl-lasa/kuka-lpvds-tasks/blob/master/img/inspection-exec.gif"  width="350"></>
+</p> 
+- Compliant and Adaptive Walk-to-Grasp and Guided Walking
 
+<p align="center">
+<img src="https://github.com/epfl-lasa/iCub-Assistant/blob/master/doc/Sec3-WalkToGrasp.gif"  width="350"></>
+  <img src="https://github.com/epfl-lasa/kuka-lpvds-tasks/blob/master/img/inspection-exec.gif"  width="350"></>
+</p>
 
 **Reference**   
 Figueroa, N., Faraji, S., Koptev, M. and Billard, A. (2019) "A Dynamical System Approach for Adaptive Grasping, Navigation and Co-Manipulation with Humanoid Robots". Submitted to ICRA-2020. 
