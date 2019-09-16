@@ -12,7 +12,7 @@ gramme ICT-23-2014, grant agreement 644727-[Cogimon](https://cogimon.eu/cognitiv
 643950-[SecondHands](https://secondhands.eu/).
 
 
-## Build Instructions
+## Build Instructions 
 -- Get yarp from here. https://www.yarp.it/install_yarp_linux.html#install_on_linux ,
 If using ubuntu 16, get the xenial version in their repository. Make sure you enable the plugins if compiling it from the source.
 
@@ -41,14 +41,15 @@ else
 fi
 ```
 
-## Running Instructions
+## Running Instructions 
+The code works for both Gazebo simulation and experiments with the real robot. 
 -- In one command window run:
 
 ```bash
 yarpserver
 ```
 
--- Open another window, navigate to gazebo/worlds folder, and run:
+-- [For Gazebo simulation] Open another window, navigate to gazebo/worlds folder, and run:
 
 ```bash
 gazebo -s libgazebo_yarp_clock.so simple.world
