@@ -1,5 +1,5 @@
 # Grasping, Walking and Navigating with an iCub
-Algorithms for object manipulation and walking with the iCub reported in:
+Algorithms for object manipulation and walking with the iCub as shown below:
 
 **Reference**   
 Figueroa, N., Faraji, S., Koptev, M. and Billard, A. (2019) "A Dynamical System Approach for Adaptive Grasping, Navigation and Co-Manipulation with Humanoid Robots". Submitted to ICRA-2020. 
