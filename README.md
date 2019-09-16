@@ -10,7 +10,7 @@ Algorithms for object manipulation and walking with the iCub as shown below:
 - Compliant and Adaptive Walk-to-Grasp and Guided Walking
 <p align="center">
 <img src="https://github.com/epfl-lasa/iCub-Assistant/blob/master/doc/Sec3-WalkToGrasp.gif"  width="400"></>
-  <img src="https://github.com/epfl-lasa/kuka-lpvds-tasks/blob/master/img/inspection-exec.gif"  width="400"></>
+  <img src="https://github.com/epfl-lasa/iCub-Assistant/blob/master/doc/Sec3-WalkToGrasp-moving.gif"  width="400"></>
 </p>
 
 - Adaptive Navigation with Non-Linear DS Learned from Demonstrations
