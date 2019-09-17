@@ -22,7 +22,7 @@ Algorithms for object manipulation and walking with the iCub as shown below:
 **Reference**   
 [1] Figueroa, N., Faraji, S., Koptev, M. and Billard, A. (2019) "A Dynamical System Approach for Adaptive Grasping, Navigation and Co-Manipulation with Humanoid Robots". Submitted to ICRA-2020. 
 
-**Contact**: For questions on the methods and/or implementation contact [Nadia Figueroa](http://lasa.epfl.ch/people/member.php?SCIPER=238387) (nadia.figueroafernandez AT epfl dot ch) and [Salman Faraji](https://salmanfaraji.github.io/) (salman.faraji AT epfl dot ch)
+**Contact**: For questions on the methods and/or implementation contact [Nadia Figueroa](http://lasa.epfl.ch/people/member.php?SCIPER=238387) (nadia.figueroafernandez AT epfl dot ch) and/or [Salman Faraji](https://salmanfaraji.github.io/) (salman.faraji AT epfl dot ch)
 
 **Acknowledgments**
 This work was supported by the European Community Horizon 2020 Research and Innovation pro-
