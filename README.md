@@ -37,7 +37,9 @@ This code has been extensively tested on Ubuntu 16. It has been experimentally t
 - Gazebo: Install from [gazebo-link](http://gazebosim.org/tutorials?tut=install_ubuntu&ver=5.0) Version 7 or 9 work properly.
 
 ## Thirdparty dependencies
-bla bla...
+The following dependencies are used during the self-collision detection routine while performing whole-body control. Download the following libraries and place in `~./iCub-Assistant/dependencies/collision/to_install`
+- [libccd](https://github.com/danfis/libccd): Library for collision detection between two convex shapes
+- [fcl](https://github.com/flexible-collision-library/fcl): FCL is a library for performing three types of proximity queries on a pair of geometric models composed of triangles.
 
 ## Build Instructions 
 Within the `~./iCub-Assistant/` folder:
