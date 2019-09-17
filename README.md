@@ -113,4 +113,4 @@ gazebo -s libgazebo_yarp_clock.so simple.world
 ./main --robot icubSim2
 ```
 
-- For real-world experiments, each controller must run individual laptops with the name of the robot being `icub`
+For real-world experiments, each controller must run individual laptops with the name of the robot being `icub`
