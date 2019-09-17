@@ -67,8 +67,7 @@ else
     export GAZEBO_MODEL_PATH=${GAZEBO_MODEL_PATH}:/home/sfaraji/Dropbox/LASA/gazebo/objects:/home/sfaraji/Dropbox/LASA/gazebo/robots
 fi
 ```
-- Install controller dependencies. Open another window, go to `~./iCub-Assistant/dependencies/collision/to_install` folder, unzip each package, navigate to each corresponding folder and:
-
+- Install collision dependencies in `~./iCub-Assistant/dependencies/collision/to_install`,
 ```bash
 mkdir build
 cd build
