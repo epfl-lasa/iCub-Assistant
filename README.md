@@ -36,10 +36,11 @@ gramme ICT-23-2014, grant agreement 644727-[Cogimon](https://cogimon.eu/cognitiv
 
 
 ## System Requirements
-This code has been extensively tested on Ubuntu 16. It has been experimentally tested on Ubuntu 18 and Mac OS-X, yet we do not ensure proper execution.  
 - OS: Ubuntu 16
 - Yarp: Install from [yarp-link](https://www.yarp.it/install_yarp_linux.html#install_on_linux). If using ubuntu 16, get the xenial version in their repository. Make sure you enable the plugins if compiling it from the source.
 - Gazebo: Install from [gazebo-link](http://gazebosim.org/tutorials?tut=install_ubuntu&ver=5.0) Version 7 or 9 work properly.
+
+The code provided in this repo has been extensively tested on Ubuntu 16. Yet, some components have been experimentally tested on Ubuntu 18 and Mac OS-X with the Gazebo simulator -- hence, we do not ensure proper execution on other OS.  
 
 ## Thirdparty dependencies
 The following dependencies are used during the self-collision detection routine while performing whole-body control. Download the following libraries and place in `~./iCub-Assistant/dependencies/collision/to_install`
