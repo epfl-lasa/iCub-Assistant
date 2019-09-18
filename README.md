@@ -3,24 +3,24 @@ Algorithms for object manipulation and walking with the iCub as shown below:
 
 - Reaching, Grasping and Manipulating while Balancing  (Section II of [1])
 <p align="center">
-<img src="https://github.com/epfl-lasa/iCub-Assistant/blob/master/doc/Sec2-VOTracking.gif"  width="350"></>
-  <img src="https://github.com/epfl-lasa/iCub-Assistant/blob/master/doc/Sec2-ReachToGrasp.gif"  width="350"></>
+<img src="https://github.com/epfl-lasa/iCub-Assistant/blob/master/docs/Sec2-VOTracking.gif"  width="350"></>
+  <img src="https://github.com/epfl-lasa/iCub-Assistant/blob/master/docs/Sec2-ReachToGrasp.gif"  width="350"></>
 </p> 
 
 - Compliant and Adaptive Walk-to-Grasp and Guided Walking (Section III of [1])
 <p align="center">
-<img src="https://github.com/epfl-lasa/iCub-Assistant/blob/master/doc/Sec3-WalkToGrasp.gif"  width="350"></>
-  <img src="https://github.com/epfl-lasa/iCub-Assistant/blob/master/doc/Sec3-WalkToGrasp-moving.gif"  width="350"></>
+<img src="https://github.com/epfl-lasa/iCub-Assistant/blob/master/docs/Sec3-WalkToGrasp.gif"  width="350"></>
+  <img src="https://github.com/epfl-lasa/iCub-Assistant/blob/master/docs/Sec3-WalkToGrasp-moving.gif"  width="350"></>
 </p>
 <p align="center">
-  <img src="https://github.com/epfl-lasa/iCub-Assistant/blob/master/doc/Sec3-WalkToGrasp-pert.gif"  width="350"></>  
-  <img src="https://github.com/epfl-lasa/iCub-Assistant/blob/master/doc/Sec3-GuidedWalking.gif"  width="350"></>
+  <img src="https://github.com/epfl-lasa/iCub-Assistant/blob/master/docs/Sec3-WalkToGrasp-pert.gif"  width="350"></>  
+  <img src="https://github.com/epfl-lasa/iCub-Assistant/blob/master/docs/Sec3-GuidedWalking.gif"  width="350"></>
 </p>
 
 - Adaptive Navigation with Non-Linear DS Learned from Demonstrations (Section IV of [1])
 <p align="center">
-  <img src="https://github.com/epfl-lasa/iCub-Assistant/blob/master/doc/Sec4-LearnToNavigate-pert.gif"  width="350"></>  
-  <img src="https://github.com/epfl-lasa/iCub-Assistant/blob/master/doc/Sec4-LearnToNavigate.gif"  width="350"></>
+  <img src="https://github.com/epfl-lasa/iCub-Assistant/blob/master/docs/Sec4-LearnToNavigate-pert.gif"  width="350"></>  
+  <img src="https://github.com/epfl-lasa/iCub-Assistant/blob/master/docs/Sec4-LearnToNavigate.gif"  width="350"></>
 </p>
 
 
