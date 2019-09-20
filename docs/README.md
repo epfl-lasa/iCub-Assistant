@@ -30,7 +30,7 @@ Following we list all of the code repositories made available for this project, 
 ### References
 > [1] Figueroa, N., Faraji, S., Koptev, M. and Billard, A. (2019) "A Dynamical System Approach for Adaptive Grasping, Navigation and Co-Manipulation with Humanoid Robots". Submitted to ICRA-2020.    
 > [2] S. Mirrazavi, N. Figueroa, and A. Billard, “A unified framework for coordinated multi-arm motion planning,” The International Journal of Robotics Research, vol. 37, no. 10, pp. 1205–1232, 2018.   
-> [3] S. Faraji, P. M ̈ullhaupt, and A. Ijspeert, “Imprecise dynamic walking with time-projection control,” [arxiv](https://infoscience.epfl.ch/record/260430?ln=en), 2018.   
+> [3] S. Faraji, P. Mullhaupt, and A. Ijspeert, “Imprecise dynamic walking with time-projection control,” [arxiv](https://infoscience.epfl.ch/record/260430?ln=en), 2018.   
 > [4] S. Faraji and A. J. Ijspeert, “Singularity-tolerant inverse kinematics for bipedal robots: An efficient use of computational power to reduce energy consumption,” IEEE Robotics and Automation Letters, vol. 2, no. 2, pp. 1132–1139, April 2017.  
 > [5] N. Figueroa and A. Billard, “A physically-consistent bayesian non-parametric mixture model for dynamical system learning,” in Proceedings of The 2nd Conference on Robot Learning, ser. Proceedings of Machine Learning Research, vol. 87. PMLR, 29–31 Oct 2018, pp. 927–946 . 
 
