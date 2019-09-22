@@ -15,7 +15,7 @@ tasks with a state-of-the-art DS-based learning scheme [5]
 </div>
 
 ### Video of Approach and Robot Experiments
-Embed youtube video here...
+<iframe width="560" height="315" src="https://www.youtube.com/embed/X-XwPxNrjFo" frameborder="0" allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
 
 ### Code
 Following we list all of the code repositories made available for this project, including:
