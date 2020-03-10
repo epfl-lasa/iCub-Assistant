@@ -15,7 +15,14 @@ tasks with a state-of-the-art DS-based learning scheme [5]
 </div>
 
 ### Video of Approach and Robot Experiments
+- Supplementary video for ICRA submission:
 <iframe width="560" height="315" src="https://www.youtube.com/embed/X-XwPxNrjFo" frameborder="0" allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+
+- Complementary video for adaptive co-manipulation with master-slave strategy simulation:
+<iframe width="560" height="315" src="https://www.youtube.com/embed/nHgS8ADImYA" frameborder="0" allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+
+- Complementary video for co-manipulation with learned DS:
+<iframe width="560" height="315" src="https://www.youtube.com/embed/3z52S-u1qaI" frameborder="0" allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
 
 ### Code
 Following we list all of the code repositories made available for this project, including:
